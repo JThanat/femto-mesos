@@ -2,7 +2,6 @@ from Slave.slave import Slave
 from queue import *
 
 if __name__ == "__main__":
-
     print("=============Testing Slave=============")
     q = Queue()
     for i in range(4):
@@ -21,4 +20,5 @@ if __name__ == "__main__":
     s.start()
     s.join()
     print("=============End of Slave Testing=============")
+
 
