@@ -61,6 +61,8 @@ class Slave(threading.Thread):
 
     def notify_master(self):
         # Some Notifying Method
+        if self.task_pool.qsize == 0:
+            print("Notifying master")
 
     def available(self):
         return self.available_executor > 0
