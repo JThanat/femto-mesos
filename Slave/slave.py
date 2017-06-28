@@ -1,7 +1,6 @@
-import threading
-import time
-from Slave.executor import *
 from queue import Queue
+
+from Slave.executor import *
 
 
 class Slave(threading.Thread):
@@ -42,9 +41,9 @@ class Slave(threading.Thread):
         key = str(dataset) + "-" + str(groupid)
         cache_data = self.cache.get(key)
         if not cache_data:
-            t = Executor(self,name=worker_name, target=fetch_and_execute, daemon=True, args=[self.cache, key])
+            t = Executor(parent=self, name=worker_name, target=fetch_and_execute, daemon=True, args=[self.cache, key])
         else:
-            t = Executor(self,name=worker_name, target=execute_with_cache, daemon=True, args=[cache_data])
+            t = Executor(parent=self, name=worker_name, target=execute_with_cache, daemon=True, args=[cache_data])
         t.start()
 
     def allocate(self, slots_allocated=1):
