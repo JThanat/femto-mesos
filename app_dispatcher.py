@@ -3,6 +3,9 @@
 import os
 import sys
 
+import mesos.native
+from mesos.interface import mesos_pb2
+
 from framework.framework import Dispatcher
 
 if __name__ == "__main__":
