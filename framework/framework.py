@@ -56,101 +56,101 @@ class Dispatcher(mesos.interface.Scheduler):
                 "Launching task %d using offer %s" \
                 % (tid, offer.id.value)
 
-            task = mesos_pb2.TaskInfo()
-            task.task_id.value = str(tid)
-            task.slave_id.value = offer.slave_id.value
-            task.name = "task %d" % tid
-            task.executor.MergeFrom(self.executor)
+                task = mesos_pb2.TaskInfo()
+                task.task_id.value = str(tid)
+                task.slave_id.value = offer.slave_id.value
+                task.name = "task %d" % tid
+                task.executor.MergeFrom(self.executor)
 
-            cpus = task.resources.add()
-            cpus.name = "cpus"
-            cpus.type = mesos_pb2.Value.SCALAR
-            cpus.scalar.value = TASK_CPUS
+                cpus = task.resources.add()
+                cpus.name = "cpus"
+                cpus.type = mesos_pb2.Value.SCALAR
+                cpus.scalar.value = TASK_CPUS
 
-            mem = task.resources.add()
-            mem.name = "mem"
-            mem.type = mesos_pb2.Value.SCALAR
-            mem.scalar.value = TASK_MEM
+                mem = task.resources.add()
+                mem.name = "mem"
+                mem.type = mesos_pb2.Value.SCALAR
+                mem.scalar.value = TASK_MEM
 
-            tasks.append(task)
-            self.taskData[task.task_id.value] = (
-                offer.slave_id, task.executor.executor_id)
+                tasks.append(task)
+                self.taskData[task.task_id.value] = (
+                    offer.slave_id, task.executor.executor_id)
 
-            remainingCpus -= TASK_CPUS
-            remainingMem -= TASK_MEM
+                remainingCpus -= TASK_CPUS
+                remainingMem -= TASK_MEM
 
-        operation = mesos_pb2.Offer.Operation()
-        operation.type = mesos_pb2.Offer.Operation.LAUNCH
-        operation.launch.task_infos.extend(tasks)
+            operation = mesos_pb2.Offer.Operation()
+            operation.type = mesos_pb2.Offer.Operation.LAUNCH
+            operation.launch.task_infos.extend(tasks)
 
-        driver.acceptOffers([offer.id], [operation])
+            driver.acceptOffers([offer.id], [operation])
 
 
-def statusUpdate(self, driver, update):
-    print
-    "Task %s is in state %s" % \
-    (update.task_id.value, mesos_pb2.TaskState.Name(update.state))
-
-    # Ensure the binary data came through.
-    if update.data != "data with a \0 byte":
+    def statusUpdate(self, driver, update):
         print
-        "The update data did not match!"
-        print
-        "  Expected: 'data with a \\x00 byte'"
-        print
-        "  Actual:  ", repr(str(update.data))
-        sys.exit(1)
+        "Task %s is in state %s" % \
+        (update.task_id.value, mesos_pb2.TaskState.Name(update.state))
 
-    if update.state == mesos_pb2.TASK_FINISHED:
-        self.tasksFinished += 1
-        if self.tasksFinished == TOTAL_TASKS:
+        # Ensure the binary data came through.
+        if update.data != "data with a \0 byte":
             print
-            "All tasks done, waiting for final framework message"
-
-        slave_id, executor_id = self.taskData[update.task_id.value]
-
-        self.messagesSent += 1
-        driver.sendFrameworkMessage(
-            executor_id,
-            slave_id,
-            'data with a \0 byte')
-
-    if update.state == mesos_pb2.TASK_LOST or \
-                    update.state == mesos_pb2.TASK_KILLED or \
-                    update.state == mesos_pb2.TASK_FAILED:
-        print
-        "Aborting because task %s is in unexpected state %s with message '%s'" \
-        % (update.task_id.value, mesos_pb2.TaskState.Name(update.state), update.message)
-        driver.abort()
-
-    # Explicitly acknowledge the update if implicit acknowledgements
-    # are not being used.
-    if not self.implicitAcknowledgements:
-        driver.acknowledgeStatusUpdate(update)
-
-
-def frameworkMessage(self, driver, executorId, slaveId, message):
-    self.messagesReceived += 1
-
-    # The message bounced back as expected.
-    if message != "data with a \0 byte":
-        print
-        "The returned message data did not match!"
-        print
-        "  Expected: 'data with a \\x00 byte'"
-        print
-        "  Actual:  ", repr(str(message))
-        sys.exit(1)
-    print
-    "Received message:", repr(str(message))
-
-    if self.messagesReceived == TOTAL_TASKS:
-        if self.messagesReceived != self.messagesSent:
+            "The update data did not match!"
             print
-            "Sent", self.messagesSent,
+            "  Expected: 'data with a \\x00 byte'"
             print
-            "but received", self.messagesReceived
+            "  Actual:  ", repr(str(update.data))
+            sys.exit(1)
+
+        if update.state == mesos_pb2.TASK_FINISHED:
+            self.tasksFinished += 1
+            if self.tasksFinished == TOTAL_TASKS:
+                print
+                "All tasks done, waiting for final framework message"
+
+            slave_id, executor_id = self.taskData[update.task_id.value]
+
+            self.messagesSent += 1
+            driver.sendFrameworkMessage(
+                executor_id,
+                slave_id,
+                'data with a \0 byte')
+
+        if update.state == mesos_pb2.TASK_LOST or \
+                        update.state == mesos_pb2.TASK_KILLED or \
+                        update.state == mesos_pb2.TASK_FAILED:
+            print
+            "Aborting because task %s is in unexpected state %s with message '%s'" \
+            % (update.task_id.value, mesos_pb2.TaskState.Name(update.state), update.message)
+            driver.abort()
+
+        # Explicitly acknowledge the update if implicit acknowledgements
+        # are not being used.
+        if not self.implicitAcknowledgements:
+            driver.acknowledgeStatusUpdate(update)
+
+
+    def frameworkMessage(self, driver, executorId, slaveId, message):
+        self.messagesReceived += 1
+
+        # The message bounced back as expected.
+        if message != "data with a \0 byte":
+            print
+            "The returned message data did not match!"
+            print
+            "  Expected: 'data with a \\x00 byte'"
+            print
+            "  Actual:  ", repr(str(message))
             sys.exit(1)
         print
-        "All tasks done, and all messages received, exiting"
-        driver.stop()
+        "Received message:", repr(str(message))
+
+        if self.messagesReceived == TOTAL_TASKS:
+            if self.messagesReceived != self.messagesSent:
+                print
+                "Sent", self.messagesSent,
+                print
+                "but received", self.messagesReceived
+                sys.exit(1)
+            print
+            "All tasks done, and all messages received, exiting"
+            driver.stop()
