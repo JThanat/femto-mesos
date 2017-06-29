@@ -1,4 +1,5 @@
 import logging
+import sys
 
 import mesos.native
 from mesos.interface import mesos_pb2

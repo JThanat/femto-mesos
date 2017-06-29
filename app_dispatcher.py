@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # This main is adapted from APACHE Mesos original test_framework.py
-
 import os
 import sys
+
+from framework.framework import Dispatcher
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
