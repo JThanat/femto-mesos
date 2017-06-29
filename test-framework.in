@@ -2,8 +2,9 @@
 
 # This script uses MESOS_SOURCE_DIR and MESOS_BUILD_DIR which come
 # from configuration substitutions.
-MESOS_SOURCE_DIR=@abs_top_srcdir@
-MESOS_BUILD_DIR=@abs_top_builddir@
+MESOS_SOURCE_DIR=/home/jthanat/mesos-1.3.0/build/..
+MESOS_BUILD_DIR=/home/jthanat/mesos-1.3.0/build
+FEMTO_SOURCE_DIR=/home/jthanat/femto-mesos
 
 # Use colors for errors.
 . ${MESOS_SOURCE_DIR}/support/colors.sh
@@ -27,7 +28,7 @@ test ! -e ${PROTOBUF} && \
 
 MESOS_EGGS=$(find ${MESOS_BUILD_DIR}/src/python/dist -name "*.egg" | tr "\\n" ":")
 
-SCRIPT=~/femto-mesos/test_framework.py
+SCRIPT=${FEMTO_SOURCE_DIR}/app_dispatcher.py
 
 test ! -e ${SCRIPT} && \
   echo "${RED}Failed to find ${SCRIPT}${NORMAL}" && \
