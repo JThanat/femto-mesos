@@ -1,60 +1,211 @@
-import logging
-import uuid
+#!/usr/bin/env python
+
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import os
+import sys
 import time
 
-from mesos.interface import Scheduler
-from mesos.native import MesosSchedulerDriver
+import mesos.interface
 from mesos.interface import mesos_pb2
+import mesos.native
 
-logging.basicConfig(level=logging.INFO)
+TOTAL_TASKS = 5
 
-def new_task(offer):
-    task = mesos_pb2.TaskInfo()
-    id = uuid.uuid4()
-    task.task_id.value = str(id)
-    task.slave_id.value = offer.slave_id.value
-    task.name = "task {}".format(str(id))
+TASK_CPUS = 1
+TASK_MEM = 128
 
-    cpus = task.resources.add()
-    cpus.name = "cpus"
-    cpus.type = mesos_pb2.Value.SCALAR
-    cpus.scalar.value = 1
+class TestScheduler(mesos.interface.Scheduler):
+    def __init__(self, implicitAcknowledgements, executor):
+        self.implicitAcknowledgements = implicitAcknowledgements
+        self.executor = executor
+        self.taskData = {}
+        self.tasksLaunched = 0
+        self.tasksFinished = 0
+        self.messagesSent = 0
+        self.messagesReceived = 0
 
-    mem = task.resources.add()
-    mem.name = "mem"
-    mem.type = mesos_pb2.Value.SCALAR
-    mem.scalar.value = 1
-
-    return task
-
-
-class HelloWorldScheduler(Scheduler):
-
-    def registered(self, driver, framework_id, master_info):
-        logging.info("Registered with framework id: {}".format(framework_id))
+    def registered(self, driver, frameworkId, masterInfo):
+        print "Registered with framework ID %s" % frameworkId.value
 
     def resourceOffers(self, driver, offers):
-        logging.info("Recieved resource offers: {}".format([o.id.value for o in offers]))
-        # whenever we get an offer, we accept it and use it to launch a task that
-        # just echos hello world to stdout
         for offer in offers:
-            task = new_task(offer)
-            task.command.value = "echo hello world"
-            time.sleep(2)
-            logging.info("Launching task {task} "
-                         "using offer {offer}.".format(task=task.task_id.value,
-                                                       offer=offer.id.value))
-            tasks = [task]
-            driver.launchTasks(offer.id, tasks)
+            tasks = []
+            offerCpus = 0
+            offerMem = 0
+            for resource in offer.resources:
+                if resource.name == "cpus":
+                    offerCpus += resource.scalar.value
+                elif resource.name == "mem":
+                    offerMem += resource.scalar.value
 
-if __name__ == '__main__':
-    # make us a framework
+            print "Received offer %s with cpus: %s and mem: %s" \
+                  % (offer.id.value, offerCpus, offerMem)
+
+            remainingCpus = offerCpus
+            remainingMem = offerMem
+
+            while self.tasksLaunched < TOTAL_TASKS and \
+                  remainingCpus >= TASK_CPUS and \
+                  remainingMem >= TASK_MEM:
+                tid = self.tasksLaunched
+                self.tasksLaunched += 1
+
+                print "Launching task %d using offer %s" \
+                      % (tid, offer.id.value)
+
+            task = mesos_pb2.TaskInfo()
+                task.task_id.value = str(tid)
+                task.slave_id.value = offer.slave_id.value
+                task.name = "task %d" % tid
+                task.executor.MergeFrom(self.executor)
+
+                cpus = task.resources.add()
+                cpus.name = "cpus"
+                cpus.type = mesos_pb2.Value.SCALAR
+                cpus.scalar.value = TASK_CPUS
+
+                mem = task.resources.add()
+                mem.name = "mem"
+                mem.type = mesos_pb2.Value.SCALAR
+                mem.scalar.value = TASK_MEM
+
+                tasks.append(task)
+                self.taskData[task.task_id.value] = (
+                    offer.slave_id, task.executor.executor_id)
+
+                remainingCpus -= TASK_CPUS
+                remainingMem -= TASK_MEM
+
+            operation = mesos_pb2.Offer.Operation()
+            operation.type = mesos_pb2.Offer.Operation.LAUNCH
+            operation.launch.task_infos.extend(tasks)
+
+            driver.acceptOffers([offer.id], [operation])
+
+    def statusUpdate(self, driver, update):
+        print "Task %s is in state %s" % \
+            (update.task_id.value, mesos_pb2.TaskState.Name(update.state))
+
+        # Ensure the binary data came through.
+        if update.data != "data with a \0 byte":
+            print "The update data did not match!"
+            print "  Expected: 'data with a \\x00 byte'"
+            print "  Actual:  ", repr(str(update.data))
+            sys.exit(1)
+
+        if update.state == mesos_pb2.TASK_FINISHED:
+            self.tasksFinished += 1
+            if self.tasksFinished == TOTAL_TASKS:
+                print "All tasks done, waiting for final framework message"
+
+            slave_id, executor_id = self.taskData[update.task_id.value]
+
+            self.messagesSent += 1
+            driver.sendFrameworkMessage(
+                executor_id,
+                slave_id,
+                'data with a \0 byte')
+
+        if update.state == mesos_pb2.TASK_LOST or \
+           update.state == mesos_pb2.TASK_KILLED or \
+           update.state == mesos_pb2.TASK_FAILED:
+            print "Aborting because task %s is in unexpected state %s with message '%s'" \
+                % (update.task_id.value, mesos_pb2.TaskState.Name(update.state), update.message)
+            driver.abort()
+
+        # Explicitly acknowledge the update if implicit acknowledgements
+        # are not being used.
+        if not self.implicitAcknowledgements:
+            driver.acknowledgeStatusUpdate(update)
+
+    def frameworkMessage(self, driver, executorId, slaveId, message):
+        self.messagesReceived += 1
+
+        # The message bounced back as expected.
+        if message != "data with a \0 byte":
+            print "The returned message data did not match!"
+            print "  Expected: 'data with a \\x00 byte'"
+            print "  Actual:  ", repr(str(message))
+            sys.exit(1)
+        print "Received message:", repr(str(message))
+
+        if self.messagesReceived == TOTAL_TASKS:
+            if self.messagesReceived != self.messagesSent:
+                print "Sent", self.messagesSent,
+                print "but received", self.messagesReceived
+                sys.exit(1)
+            print "All tasks done, and all messages received, exiting"
+            driver.stop()
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print "Usage: %s master" % sys.argv[0]
+        sys.exit(1)
+
+    executor = mesos_pb2.ExecutorInfo()
+    executor.executor_id.value = "default"
+    executor.command.value = os.path.abspath("./test-executor")
+    executor.name = "Test Executor (Python)"
+    executor.source = "python_test"
+
     framework = mesos_pb2.FrameworkInfo()
-    framework.user = ""  # Have Mesos fill in the current user.
-    framework.name = "hello-world"
-    driver = MesosSchedulerDriver(
-        HelloWorldScheduler(),
-        framework,
-        "zk://localhost:2181/mesos"  # assumes running on the master
-    )
-    driver.run()
+    framework.user = "" # Have Mesos fill in the current user.
+    framework.name = "Test Framework (Python)"
+    framework.checkpoint = True
+
+    implicitAcknowledgements = 1
+    if os.getenv("MESOS_EXPLICIT_ACKNOWLEDGEMENTS"):
+        print "Enabling explicit status update acknowledgements"
+        implicitAcknowledgements = 0
+
+    if os.getenv("MESOS_AUTHENTICATE_FRAMEWORKS"):
+        print "Enabling authentication for the framework"
+
+        if not os.getenv("DEFAULT_PRINCIPAL"):
+            print "Expecting authentication principal in the environment"
+            sys.exit(1);
+
+        credential = mesos_pb2.Credential()
+        credential.principal = os.getenv("DEFAULT_PRINCIPAL")
+
+        if os.getenv("DEFAULT_SECRET"):
+            credential.secret = os.getenv("DEFAULT_SECRET")
+
+        framework.principal = os.getenv("DEFAULT_PRINCIPAL")
+
+        driver = mesos.native.MesosSchedulerDriver(
+            TestScheduler(implicitAcknowledgements, executor),
+            framework,
+            sys.argv[1],
+            implicitAcknowledgements,
+            credential)
+    else:
+        framework.principal = "test-framework-python"
+
+        driver = mesos.native.MesosSchedulerDriver(
+            TestScheduler(implicitAcknowledgements, executor),
+            framework,
+            sys.argv[1],
+            implicitAcknowledgements)
+
+    status = 0 if driver.run() == mesos_pb2.DRIVER_STOPPED else 1
+
+    # Ensure that the driver process terminates.
+    driver.stop();
+
+    sys.exit(status)
