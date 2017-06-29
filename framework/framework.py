@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.DEBUG,
                     )
 
 
-class dispathcer():
+class Dispatcher():
     # This class defines the framework of Mesos or Job Dispatcher of the system
     def __init__(self, implicitAcknowledgements, executor):
         self.executor = executor
