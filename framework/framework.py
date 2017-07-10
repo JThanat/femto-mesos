@@ -178,7 +178,12 @@ class HelloWorldScheduler(mesos.interface.Scheduler):
             print "Launching task {task} using offer {offer}".format(task=task.task_id.value, offer=offer.id.value)
 
             tasks = [task]
-            driver.lauchTasks(offer.id, tasks)
+
+            operation = mesos_pb2.Offer.Operation()
+            operation.type = mesos_pb2.Offer.Operation.LAUNCH
+            operation.launch.task_infos.extend(tasks)
+
+            driver.acceptOffers([offer.id], [operation])
 
     def new_task(self,offer):
         task = mesos_pb2.TaskInfo()
