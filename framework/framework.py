@@ -184,7 +184,7 @@ class HelloWorldScheduler(mesos.interface.Scheduler):
         task = mesos_pb2.TaskInfo()
         id = uuid.uuid4()
         task.task_id.value = str(id)
-        task.salve_id.value = offer.slave_id.value
+        task.slave_id.value = offer.slave_id.value
         task.name = "task {0}".format(str(id))
 
         cpus = task.resources.add()
