@@ -19,7 +19,7 @@ if __name__ == "__main__":
     executor.command.value = os.path.abspath("./test-executor")
     executor.name = "Test Executor (Python)"
     executor.source = "python_test"
-
+    # STEP1: Get Framework Info
     framework = mesos_pb2.FrameworkInfo()
     framework.user = ""  # Have Mesos fill in the current user.
     framework.name = "Test Framework (Python)"
@@ -47,7 +47,7 @@ if __name__ == "__main__":
             credential.secret = os.getenv("DEFAULT_SECRET")
 
         framework.principal = os.getenv("DEFAULT_PRINCIPAL")
-
+        # STEP2 create Driver with the Scheduler (here is Dispatcher)
         driver = mesos.native.MesosSchedulerDriver(
             Dispatcher(implicitAcknowledgements, executor),
             framework,
@@ -56,7 +56,7 @@ if __name__ == "__main__":
             credential)
     else:
         framework.principal = "test-framework-python"
-
+        # STEP2 create Driver with the Scheduler (here is Dispatcher)
         driver = mesos.native.MesosSchedulerDriver(
             Dispatcher(implicitAcknowledgements, executor),
             framework,

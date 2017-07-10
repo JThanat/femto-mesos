@@ -25,6 +25,7 @@ class Dispatcher(mesos.interface.Scheduler):
         self.messagesReceived = 0
 
     def registered(self, driver, frameworkId, masterInfo):
+        # Some DB Connection could go be instantiated here
         print "Registered with framework ID %s" % frameworkId.value
 
     def resourceOffers(self, driver, offers):
@@ -132,3 +133,68 @@ class Dispatcher(mesos.interface.Scheduler):
                 sys.exit(1)
             print "All tasks done, and all messages received, exiting"
             driver.stop()
+
+    def new_task(self, offer):
+        task = mesos_pb2.TaskInfo()
+        task.task_id.value = str(tid)
+        task.slave_id.value = offer.slave_id.value
+        task.name = "task %d" % tid
+        task.executor.MergeFrom(self.executor)
+
+        cpus = task.resources.add()
+        cpus.name = "cpus"
+        cpus.type = mesos_pb2.Value.SCALAR
+        cpus.scalar.value = TASK_CPUS
+
+        mem = task.resources.add()
+        mem.name = "mem"
+        mem.type = mesos_pb2.Value.SCALAR
+        mem.scalar.value = TASK_MEM
+
+        return task
+
+import uuid
+import time
+
+class HelloWorldScheduler(mesos.interface.Scheduler):
+    def __init__(self, implicitAcknowledgements, executor):
+        self.implicitAcknowledgements = implicitAcknowledgements
+        self.executor = executor
+        self.messagesSent = 0
+        self.messagesReceived = 0
+        self.command = "echo hello world"
+
+    def registered(self, driver, frameworkId, masterInfo):
+        # Some DB Connection could go be instantiated here
+        print "Registered with framework ID %s" % frameworkId.value
+
+    def resourceOffers(self, driver, offers):
+        print "Received resource offers: {}".format([offer.id.value for offer in offers])
+        for offer in offers:
+            task = self.new_task(offer)
+            task.command.value = self.command
+            time.sleep(2)
+
+            print "Launching task {task} using offer {offer}".format(task=task.task_id.value, offer=offer.id.value)
+
+            tasks = [task]
+            driver.lauchTasks(offer.id, tasks)
+
+    def new_task(self,offer):
+        task = mesos_pb2.TaskInfo()
+        id = uuid.uuid4()
+        task.task_id.value = str(id)
+        task.salve_id.value = offer.slave_id.value
+        task.name = "task {0}".format(str(id))
+
+        cpus = task.resources.add()
+        cpus.name = "cpus"
+        cpus.type = mesos_pb2.Value.SCALAR
+        cpus.scalar.value = 1
+
+        mem = task.resources.add()
+        mem.name = "mem"
+        mem.type = mesos_pb2.Value.SCALAR
+        mem.scalar.value = 1
+
+        return task
