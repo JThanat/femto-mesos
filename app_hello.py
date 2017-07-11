@@ -8,15 +8,21 @@ import mesos.native
 from mesos.interface import mesos_pb2
 
 from framework.framework import HelloWorldScheduler
+from framework.job import Job
 
 if __name__ == "__main__":
 
     # Read JSON File
     json_file = sys.argv[2]
+    jobs = []
     with open(json_file) as json_data:
         json_object = json.load(json_data)
-        jobs = json_object["jobs"]
-        print jobs
+        jobs_array = json_object["jobs"]
+        print jobs_array
+
+    # Prepare job object Array
+    for j in jobs_array:
+        jobs.append(Job.fromJSON(j))
 
     # Framework Info, Executor and Driver
     framework = mesos_pb2.FrameworkInfo()
