@@ -178,6 +178,7 @@ class HelloWorldScheduler(mesos.interface.Scheduler):
             if self._submitted:
                 for offer in offers:
                     driver.declineOffer(offer.id)
+                    print "decline resource offers: {}".format([offer.id.value for offer in offers])
                 return
             self._submitted = True
             offer = offers[0]
