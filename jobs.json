@@ -1,0 +1,29 @@
+{
+   "jobs":[
+      {
+         "cpus":1.0,
+         "mem":128,
+         "command":"sleep 60; echo HELLO MAN"
+      },
+      {
+         "cpus":1.0,
+         "mem":128,
+         "command":"sleep 60; echo HELLO MAN2"
+      },
+      {
+         "cpus":1.0,
+         "mem":128,
+         "command":"sleep 60; echo HELLO MAN3"
+      },
+      {
+         "cpus":1.0,
+         "mem":128,
+         "command":"sleep 60; echo HELLO MAN4"
+      },
+      {
+         "cpus":1.0,
+         "mem":128,
+         "command":"sleep 60; echo HELLO MAN5"
+      }
+   ]
+}
