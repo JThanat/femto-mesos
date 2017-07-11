@@ -158,12 +158,10 @@ import uuid
 import time
 
 class HelloWorldScheduler(mesos.interface.Scheduler):
-    def __init__(self, implicitAcknowledgements, executor):
+    def __init__(self, implicitAcknowledgements, executor, jobs):
         self.implicitAcknowledgements = implicitAcknowledgements
         self.executor = executor
-        self.messagesSent = 0
-        self.messagesReceived = 0
-        self.command = "echo hello world"
+        self.jobs = jobs
 
     def registered(self, driver, frameworkId, masterInfo):
         # Some DB Connection could go be instantiated here
@@ -175,41 +173,31 @@ class HelloWorldScheduler(mesos.interface.Scheduler):
     def resourceOffers(self, driver, offers):
         with self.lock:
             print "Received resource offers: {}".format([offer.id.value for offer in offers])
-            if self._submitted:
-                for offer in offers:
+
+            pending_jobs = []
+            tasks = []
+            for job in self.jobs:
+                if not job.submitted:
+                    pending_jobs.append(job)
+
+            for offer in offers:
+                if len(pending_jobs) == 0:
                     driver.declineOffer(offer.id)
                     print "decline resource offers: {}".format([offer.id.value for offer in offers])
-                return
-            self._submitted = True
-            offer = offers[0]
-            task = self.new_task(offer)
-            task.command.value = self.command
+                    break
 
-            print "Launching task {task} using offer {offer}".format(task=task.task_id.value, offer=offer.id.value)
+                job = pending_jobs.pop(0)
+                task = job.new_task(offer)
+                task.command.value = job.command
 
-            tasks = [task]
+                print "Launching task {task} using offer {offer}".format(task=task.task_id.value, offer=offer.id.value)
 
-            operation = mesos_pb2.Offer.Operation()
-            operation.type = mesos_pb2.Offer.Operation.LAUNCH
-            operation.launch.task_infos.extend(tasks)
+                tasks.append(task)
 
-            driver.acceptOffers([offer.id], [operation])
+                operation = mesos_pb2.Offer.Operation()
+                operation.type = mesos_pb2.Offer.Operation.LAUNCH
+                operation.launch.task_infos.extend(tasks)
 
-    def new_task(self,offer):
-        task = mesos_pb2.TaskInfo()
-        id = uuid.uuid4()
-        task.task_id.value = str(id)
-        task.slave_id.value = offer.slave_id.value
-        task.name = "task {0}".format(str(id))
+                driver.acceptOffers([offer.id], [operation])
 
-        cpus = task.resources.add()
-        cpus.name = "cpus"
-        cpus.type = mesos_pb2.Value.SCALAR
-        cpus.scalar.value = 1
-
-        mem = task.resources.add()
-        mem.name = "mem"
-        mem.type = mesos_pb2.Value.SCALAR
-        mem.scalar.value = 1
-
-        return task
+                job.submitted = True
