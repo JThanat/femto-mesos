@@ -1,5 +1,6 @@
 import logging
 import sys
+import threading
 
 from mesos.interface import mesos_pb2
 import mesos.native
@@ -168,12 +169,20 @@ class HelloWorldScheduler(mesos.interface.Scheduler):
         # Some DB Connection could go be instantiated here
         print "Registered with framework ID %s" % frameworkId.value
 
+    _submitted = False
+    lock = threading.Lock()
+
     def resourceOffers(self, driver, offers):
-        print "Received resource offers: {}".format([offer.id.value for offer in offers])
-        for offer in offers:
+        with self.lock:
+            print "Received resource offers: {}".format([offer.id.value for offer in offers])
+            if self._submitted:
+                for offer in offers:
+                    driver.declineOffer(offer.id)
+                return
+            self._submitted = True
+            offer = offers[0]
             task = self.new_task(offer)
             task.command.value = self.command
-            time.sleep(2)
 
             print "Launching task {task} using offer {offer}".format(task=task.task_id.value, offer=offer.id.value)
 
