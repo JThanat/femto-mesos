@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # This main is adapted from APACHE Mesos original test_framework.py
+import json
 import os
 import sys
 
@@ -9,13 +10,22 @@ from mesos.interface import mesos_pb2
 from framework.framework import HelloWorldScheduler
 
 if __name__ == "__main__":
+
+    # Read JSON File
+    json_file = sys.argv[2]
+    with open(json_file) as json_data:
+        json_object = json.load(json_data)
+        jobs = json_object["jobs"]
+        print jobs
+
+    # Framework Info, Executor and Driver
     framework = mesos_pb2.FrameworkInfo()
     framework.user = ""
     framework.name = "hello-world"
     framework.checkpoint = True
     implicitAcknowledgements = 1
 
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         print
         "Usage: %s master" % sys.argv[0]
         sys.exit(1)
@@ -32,7 +42,7 @@ if __name__ == "__main__":
     framework.checkpoint = True
 
     driver = mesos.native.MesosSchedulerDriver(
-        HelloWorldScheduler(implicitAcknowledgements, executor),
+        HelloWorldScheduler(implicitAcknowledgements, executor, jobs),
         framework,
         sys.argv[1],
         implicitAcknowledgements)
