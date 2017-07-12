@@ -10,6 +10,22 @@ class Jobstate(object):
     SUCCESSFUL = 4
     FAILED = 5
 
+    state = [
+        "PENDING",
+        "STAGING",
+        "RUNNING",
+        "SUCCESSFUL",
+        "FAILED"
+    ]
+
+    @classmethod
+    def getstate_name(self, state):
+        if state < 1 or state > 5:
+            raise ValueError("The state is not defined")
+
+        return self.state[state-1]
+
+
 class Job(object):
     def __init__(self, cpus = 1.0, mem = 128.0, command = "", retries = 3):
         self.submitted = False
@@ -54,6 +70,10 @@ class Job(object):
         else:
             self.retries -= 1
             self.status = Jobstate.PENDING
+
+    def save_state(self):
+        # TODO - save id and state to external database in case so that Zookeeper can load the state again
+        print "Saving the state for job id {0} with state {1}".format(str(self.id), str(Jobstate.getstate_name(self.status)))
 
 
     @classmethod
