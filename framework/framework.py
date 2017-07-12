@@ -234,5 +234,6 @@ class HelloWorldScheduler(mesos.interface.Scheduler):
           then the master will send the latest status for each task
           currently known.
         """
+        print "Reconcile Task"
         print type(tasks)
 
