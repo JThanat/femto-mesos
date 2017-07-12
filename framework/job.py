@@ -37,6 +37,38 @@ class Job(object):
         return self(cpus,mem,command)
 
 
+def do_fit_first(offer, jobs):
+    to_launch = []
+    launched = []
+    offer_cpus = 0.0
+    offer_mem = 0.0
+
+    for resource in offer.resources:
+        if resource.name == "cpus":
+            offer_cpus += resource.scalar.value
+        elif resource.name == "mem":
+            offer_mem += resource.scalar.value
+
+    print "Received offer {offer} with cpus: {cpu} and mem: {mem}".format(offer=offer.id.value, cpu=offer_cpus, mem=offer_mem)
+
+    for job in jobs:
+        job_cpus = job.cpus
+        job_mem = job.mem
+
+        if offer_cpus >= job_cpus and offer_mem >= job_mem:
+            offer_cpus -= job_cpus
+            offer_mem -= offer_mem
+            to_launch.append(job.new_task(offer))
+            job.submitted = True
+            launched.append(job)
+
+    for job in launched:
+        job.launch()
+
+    jobs = [x for x in jobs if x not in launched]
+    return to_launch
+
+
 
 
 
