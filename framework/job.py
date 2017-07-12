@@ -35,6 +35,7 @@ class Job(object):
         self.retries = retries
         self.id = uuid.uuid4()
         self.status = Jobstate.PENDING
+        self.save_state()
 
     def new_task(self, offer):
         task = mesos_pb2.TaskInfo()
@@ -57,12 +58,15 @@ class Job(object):
 
     def launch(self):
         self.status = Jobstate.STAGING
+        self.save_state()
 
     def started(self):
         self.status = Jobstate.RUNNING
+        self.save_state()
 
     def succeed(self):
         self.status = Jobstate.SUCCESSFUL
+        self.save_state()
 
     def fail(self):
         if self.retries == 0:
@@ -70,6 +74,7 @@ class Job(object):
         else:
             self.retries -= 1
             self.status = Jobstate.PENDING
+        self.save_state()
 
     def save_state(self):
         # TODO - save id and state to external database in case so that Zookeeper can load the state again
