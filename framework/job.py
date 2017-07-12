@@ -11,11 +11,14 @@ class Jobstate(object):
     FAILED = 5
 
 class Job(object):
-    def __init__(self, cpus = 1.0, mem = 128.0, command = ""):
+    def __init__(self, cpus = 1.0, mem = 128.0, command = "", retries = 3):
         self.submitted = False
         self.cpus = cpus
         self.mem = mem
         self.command = command
+        self.retries = retries
+        self.id = uuid.uuid4()
+        self.status = Jobstate.PENDING
 
     def new_task(self, offer):
         task = mesos_pb2.TaskInfo()
@@ -36,12 +39,30 @@ class Job(object):
 
         return task
 
+    def launch(self):
+        self.status = Jobstate.STAGING
+
+    def started(self):
+        self.status = Jobstate.RUNNING
+
+    def succeed(self):
+        self.status = Jobstate.SUCCESSFUL
+
+    def fail(self):
+        if self.retries == 0:
+            self.status = Jobstate.FAILED
+        else:
+            self.retries -= 1
+            self.status = Jobstate.PENDING
+
+
     @classmethod
     def fromJSON(self, json_data):
         cpus = json_data.get("cpus")
         mem = json_data.get("mem")
         command = json_data.get("command")
         return self(cpus,mem,command)
+
 
 
 def do_fit_first(offer, jobs):
