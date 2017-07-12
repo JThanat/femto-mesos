@@ -3,6 +3,13 @@ import json
 from mesos.interface import mesos_pb2
 import mesos.native
 
+class Jobstate(object):
+    PENDING = 1
+    STAGING = 2
+    RUNNING = 3
+    SUCCESSFUL = 4
+    FAILED = 5
+
 class Job(object):
     def __init__(self, cpus = 1.0, mem = 128.0, command = ""):
         self.submitted = False
