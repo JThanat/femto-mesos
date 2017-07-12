@@ -22,7 +22,7 @@ class Job(object):
 
     def new_task(self, offer):
         task = mesos_pb2.TaskInfo()
-        id = uuid.uuid4()
+        id = self.id
         task.task_id.value = str(id)
         task.slave_id.value = offer.slave_id.value
         task.name = "task {0}".format(str(id))
