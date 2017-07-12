@@ -3,6 +3,7 @@ import sys
 import threading
 
 from mesos.interface import mesos_pb2
+from job import *
 import mesos.native
 
 TOTAL_TASKS = 5
@@ -13,7 +14,6 @@ TASK_MEM = 128
 logging.basicConfig(level=logging.DEBUG,
                     format="(%(threadName)-10s) %(message)s",
                     )
-
 
 class Dispatcher(mesos.interface.Scheduler):
     def __init__(self, implicitAcknowledgements, executor):
@@ -224,3 +224,15 @@ class HelloWorldScheduler(mesos.interface.Scheduler):
                         break
                     else:
                         break
+
+    def reconcileTasks(self, tasks):
+        """
+          Allows the framework to query the status for non-terminal tasks.
+          This causes the master to send back the latest task status for
+          each task in 'statuses', if possible. Tasks that are no longer
+          known will result in a TASK_LOST update. If statuses is empty,
+          then the master will send the latest status for each task
+          currently known.
+        """
+        print type(tasks)
+
