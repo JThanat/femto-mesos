@@ -201,3 +201,26 @@ class HelloWorldScheduler(mesos.interface.Scheduler):
                 driver.acceptOffers([offer.id], [operation])
 
                 job.submitted = True
+
+    def statusUpdate(self, driver, update):
+        with self.lock:
+            # TODO - Change jobs to map instead of List
+            for job in self.jobs:
+                if str(job.id) == update.task_id.value:
+                    if update.state == mesos_pb2.TASK_RUNNING:
+                        job.started()
+                        break
+                    elif update.state == mesos_pb2.TASK_FINISHED:
+                        job.succeed()
+                        break
+                    elif update.state == mesos_pb2.TASK_FAILED:
+                        pass
+                    elif update.state == mesos_pb2.TASK_KILLED:
+                        pass
+                    elif update.state == mesos_pb2.TASK_LOST:
+                        pass
+                    elif update.state == mesos_pb2.TASK_ERROR:
+                        job.fail()
+                        break
+                    else:
+                        break
