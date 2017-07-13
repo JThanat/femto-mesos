@@ -1,6 +1,6 @@
 from queue import Queue
 
-from Slave.executor import *
+from slave.executor import *
 
 
 class Slave(threading.Thread):
@@ -13,7 +13,7 @@ class Slave(threading.Thread):
         self.executor_number = executor_number
         self.executor_queue = Queue()
         self.worker_id_count = 0
-        self.node_name = "Slave" + str(slave_id)
+        self.node_name = "slave" + str(slave_id)
         self.task_pool = task_pool
         self.available_executor = self.executor_number
 
