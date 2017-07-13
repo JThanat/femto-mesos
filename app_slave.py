@@ -1,8 +1,8 @@
-from slave.slave import Slave
+from compute.slave import Slave
 from queue import *
 
 if __name__ == "__main__":
-    print("=============Testing slave=============")
+    print("=============Testing compute=============")
     q = Queue()
     for i in range(4):
         task = {}
@@ -19,6 +19,6 @@ if __name__ == "__main__":
     s = Slave(1,q,4,name="Slave1")
     s.start()
     s.join()
-    print("=============End of slave Testing=============")
+    print("=============End of compute Testing=============")
 
 
