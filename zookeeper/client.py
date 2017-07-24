@@ -13,4 +13,3 @@ def watch_for_ro(state):
             print("Read/Write mode!")
 
 zk.start()
-watch_for_ro(zk.client_state)
