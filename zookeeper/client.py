@@ -12,4 +12,8 @@ def watch_for_ro(state):
         else:
             print("Read/Write mode!")
 
+from zookeeper.queue import Queue
+
 zk.start()
+q = Queue(zk,'/zookeeper/queue')
+q.put('Hello')
