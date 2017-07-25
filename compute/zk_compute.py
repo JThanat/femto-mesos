@@ -1,32 +1,65 @@
 import time
-from Queue import Queue
+import uuid
 
 from executor import *
 
 
 class Slave(threading.Thread):
-    # This class define the compute node of the system
+    # This class define the compute node of the system.
+    # This will represents a cluster of compute node using thread for each worker
     __default_executor_number = 4
 
-    def __init__(self, slave_id, zk_cli, zk_path, executor_number=4, **kwargs):
+    def __init__(self, client, path, slave_id=None,executor_number=1, **kwargs):
+
         """
-       :param slave_id: the id of the compute node
-       :param zk_cli: zookeeper client
-       :param zk_path: the path to zookeeper work directory
+       :param client: zookeeper client
+       :param path: the path to zookeeper work directory
+       :param slave_id: a unique string used to identify slave
        :param executor_number: number of limited executor of this Slave
        :param kwargs: the default constructor from superclass (Thread)
        """
         self.cache = {}
+        self.client = client
         self.executor_number = executor_number
-        self.executor_queue = Queue()
         self.worker_id_count = 0
-        self.node_name = "compute" + str(slave_id)
         self.available_executor = self.executor_number
+        self.slave_id = uuid.uuid4() if not slave_id else slave_id
+        self.wait_count = 1
+        self.default_wait = self.wait_count
+        self.unowned_job = []
 
-        # TODO task_pool should become zookeeper
-        self.task_pool = task_pool
+        self.path = path
+        self.unowned_path = self.path + "/unowned_path"
+        self.owned_path = self.path + "/owned_path"
+        self.structured_paths = (self.path, self.unowned_path, self.owned_path)
+        self.ensured_path = False
+
+        self._ensure_paths()
 
         super(Slave, self).__init__(**kwargs)
+
+    def _ensure_paths(self):
+        if not self.ensured_path:
+            for path in self.structured_paths:
+                self.client.ensure_path(path)
+            self.ensured_path = True
+
+    def get_job_from_list(self):
+        """
+        get an appropriate job to execute
+        :return: job_id or None
+        """
+        for job in self.unowned_job:
+            job_id = job.split("-")[-1]
+            if self.cache.get(job_id):
+                return self.get_job()
+        return None
+
+    def get_job(self):
+        pass
+
+    def _inner_get(self):
+        pass
 
     def run(self):
         while True:
