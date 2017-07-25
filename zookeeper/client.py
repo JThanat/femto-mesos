@@ -1,6 +1,7 @@
 from kazoo.client import KazooClient
 from kazoo.client import KazooState
 from kazoo.client import KeeperState
+from kazoo.recipe.queue import Queue
 
 zk = KazooClient(hosts='127.0.0.1:2181')
 
@@ -11,8 +12,6 @@ def watch_for_ro(state):
             print("Read only mode!")
         else:
             print("Read/Write mode!")
-
-from zookeeper.queue import Queue
 
 zk.start()
 q = Queue(zk,'/zookeeper/queue')
