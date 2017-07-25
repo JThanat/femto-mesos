@@ -52,14 +52,29 @@ class Slave(threading.Thread):
         for job in self.unowned_job:
             job_id = job.split("-")[-1]
             if self.cache.get(job_id):
-                return self.get_job()
+                return self.get_job(job)
         return None
 
-    def get_job(self):
-        pass
+    def get_job(self, entry):
+        path = self.unowned_path + "/" + str(entry)
+        return self.client.retry(self._inner_get, (path,))
 
-    def _inner_get(self):
-        pass
+    def _inner_get(self, path):
+        try:
+            data, stat = self.client.get(path)
+        except NoNodeError:
+            # the first node has vanished in the meantime, try to
+            # get another one
+            raise ForceRetryError()
+        try:
+            self.client.delete(path)
+        except NoNodeError:
+            # we were able to get the data but someone else has removed
+            # the node in the meantime. consider the item as processed
+            # by the other process
+            raise ForceRetryError()
+        del self.unowned_job[:]
+        return data
 
     def run(self):
         while True:
