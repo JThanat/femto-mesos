@@ -69,13 +69,30 @@ class Slave(threading.Thread):
                 time.sleep(4)
                 logging.debug("waiting 400 ms for available executor")
                 continue
-            elif self.available() and not self.task_pool.empty():
-                # get the task from the queue if there exist an available executor and the queue is not empty
-                task = self.task_pool.get()
-                self.run_task(task["dataset"], task["groupid"])
             else:
-                # available but no task to do simply pass
-                continue
+                # the name of each ZNode will be in the form of
+                # entry-created_order-dataset:groupid
+                # job_id should be identified by dataset:groupid
+                self.unowned_job = self.client.get_children('/unowned')
+                self.unowned_job.sort()
+
+                job = self.get_job_from_list()
+
+                if job:
+                # execute
+                elif self.wait_for_work():
+                    time.sleep(1)
+                    logging.debug("waiting for a new job that satisfy")
+                else:
+                    self.get_job()
+
+    def wait_for_work(self):
+        if self.wait_count == 0:
+            self.wait_count = self.default_wait
+            return False
+        else:
+            self.wait_count -= 1
+            return True
 
     def run_task(self, dataset, groupid, slots_needed=1):
         # let the thread run
