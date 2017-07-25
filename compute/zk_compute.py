@@ -1,7 +1,9 @@
-import time
 import uuid
+import json
 
 from executor import *
+from kazoo.exceptions import NoNodeError, NodeExistsError
+from kazoo.retry import ForceRetryError
 
 
 class Slave(threading.Thread):
@@ -9,7 +11,7 @@ class Slave(threading.Thread):
     # This will represents a cluster of compute node using thread for each worker
     __default_executor_number = 4
 
-    def __init__(self, client, path, slave_id=None,executor_number=1, **kwargs):
+    def __init__(self, client, path, slave_id=None, executor_number=1, **kwargs):
 
         """
        :param client: zookeeper client
@@ -94,12 +96,15 @@ class Slave(threading.Thread):
                 job = self.get_job_from_list()
 
                 if job:
-                # execute
+                    self.execute_job(job)
                 elif self.wait_for_work():
                     time.sleep(1)
                     logging.debug("waiting for a new job that satisfy")
                 else:
-                    self.get_job()
+                    # get the oldest job
+                    self.unowned_job.sort()
+                    job = self.get_job(self.unowned_job[0])
+                    self.execute_job(job)
 
     def wait_for_work(self):
         if self.wait_count == 0:
@@ -109,9 +114,13 @@ class Slave(threading.Thread):
             self.wait_count -= 1
             return True
 
+    def execute_job(self, job):
+        job_object = json.loads(job)
+        self.run_task(dataset=job_object.get('dataset'), groupid=job_object.get('groupid'), slots_needed=1)
+
     def run_task(self, dataset, groupid, slots_needed=1):
         # let the thread run
-        worker_name = self.node_name + "-" + "worker"
+        worker_name = "worker"
         key = str(dataset) + "-" + str(groupid)
         cache_data = self.cache.get(key)
         if not cache_data:
