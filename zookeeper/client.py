@@ -17,7 +17,7 @@ zk.start()
 q = Queue(zk,'/zookeeper/queue')
 q.put('Hello')
 
-from queue import Queue as myQueue
+from zk_queue import Queue as myQueue
 
 q2 = myQueue(zk, '/zookeeper/queue')
 q.put('Hello From My Queue')
