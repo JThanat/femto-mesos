@@ -170,11 +170,10 @@ class Slave(threading.Thread):
         key = str(dataset) + ":" + str(groupid)
         cache_data = self.cache.get(key)
         if not cache_data:
-            t = Executor(job_path=job_path, parent=self, name=worker_name, target=fetch_and_execute, daemon=True,
-                         args=[self.cache, key])
+            t = Executor(job_path=job_path, parent=self, name=worker_name, target=fetch_and_execute, args=[self.cache, key])
         else:
-            t = Executor(job_path=job_path, parent=self, name=worker_name, target=execute_with_cache, daemon=True,
-                         args=[cache_data])
+            t = Executor(job_path=job_path, parent=self, name=worker_name, target=execute_with_cache, args=[cache_data])
+        t.daemon = True
         t.start()
 
     def allocate(self, slots_allocated=1):
