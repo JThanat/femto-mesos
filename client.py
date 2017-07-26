@@ -35,7 +35,7 @@ for i in range(8):
     d["state"] = Jobstate.PENDING
     d["worker_node"] = None
     json_str = json.dumps(d)
-    path = '{path}/{prefix}{priority:03d}-{dataset}:{groupid}-'.formant(
+    path = '{path}/{prefix}{priority:03d}-{dataset}:{groupid}-'.format(
         path="/unowned",
         prefix=prefix,
         priority=priority,

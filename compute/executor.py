@@ -3,7 +3,7 @@ import threading
 import time
 from random import *
 
-from framework.job import Jobstate
+from zookeeper.job import Jobstate
 
 
 class Executor(threading.Thread):
