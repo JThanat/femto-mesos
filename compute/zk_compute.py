@@ -134,7 +134,7 @@ class Slave(threading.Thread):
                 self.unowned_job = self.client.get_children('/unowned')
 
                 # -int(entry.split("-")[1]) changes the sort order to descending order
-                sorted(self.unowned_job, key=lambda entry: (-int(entry.split("-")[1]), entry.split("-")[-1]))
+                self.unowned_job = sorted(self.unowned_job, key=lambda entry: (-int(entry.split("-")[1]), entry.split("-")[-1]))
 
                 job = self.get_job_from_list()
 
