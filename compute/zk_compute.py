@@ -92,13 +92,13 @@ class Slave(threading.Thread):
         value_dict = json.loads(value)
         value_dict["state"] = Jobstate.RUNNING
         value_dict["worker"] = str(self.slave_id)
-        self.running_job_path = '{path}/{prefix}{priority:03d}-{dataset}:{groupid}-'.format(
+        path = '{path}/{prefix}{priority:03d}-{dataset}:{groupid}-'.format(
             path=self.owned_path, prefix=self.prefix, priority=priority,
             dataset=value_dict.get("dataset"),
             groupid=value_dict.get("groupid")
         )
         final_val = json.dumps(value_dict)
-        self.client.create(self.running_job_path, final_val, sequence=True)
+        self.running_job_path = self.client.create(path, final_val, sequence=True)
 
     def update_state(self, state):
         # update state in owned job
