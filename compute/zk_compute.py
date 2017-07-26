@@ -5,7 +5,7 @@ from kazoo.exceptions import NoNodeError
 from kazoo.retry import ForceRetryError
 
 from executor import *
-from framework.job import Jobstate
+from zookeeper.job import Jobstate
 
 
 class Slave(threading.Thread):
