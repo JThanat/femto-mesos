@@ -1,15 +1,18 @@
-import uuid
 import json
+import uuid
+
+from kazoo.exceptions import NoNodeError
+from kazoo.retry import ForceRetryError
 
 from executor import *
-from kazoo.exceptions import NoNodeError, NodeExistsError
-from kazoo.retry import ForceRetryError
+from framework.job import Jobstate
 
 
 class Slave(threading.Thread):
     # This class define the compute node of the system.
     # This will represents a cluster of compute node using thread for each worker
     __default_executor_number = 4
+    prefix = "entry-"
 
     def __init__(self, client, path, slave_id=None, executor_number=1, **kwargs):
 
@@ -33,6 +36,7 @@ class Slave(threading.Thread):
         self.path = path
         self.unowned_path = self.path + "/unowned_path"
         self.owned_path = self.path + "/owned_path"
+        self.running_job_path = ""
         self.structured_paths = (self.path, self.unowned_path, self.owned_path)
         self.ensured_path = False
 
@@ -59,7 +63,10 @@ class Slave(threading.Thread):
 
     def get_job(self, entry):
         path = self.unowned_path + "/" + str(entry)
-        return self.client.retry(self._inner_get, (path,))
+        return self.client.retry(self._inner_get, path)
+
+    def get_job_from_path(self, path):
+        return self.client.retry(self._inner_get, path)
 
     def _inner_get(self, path):
         try:
@@ -78,6 +85,39 @@ class Slave(threading.Thread):
         del self.unowned_job[:]
         return data
 
+    def own_job(self, value, priority=100):
+        # move job to owned part
+        self._check_put_arguments(value, priority)
+        self._ensure_paths()
+        value_dict = json.loads(value)
+        value_dict["state"] = Jobstate.RUNNING
+        value_dict["worker"] = self.slave_id
+        self.running_job_path = '{path}/{prefix}{priority:03d}-{dataset}:{groupid}-'.format(
+            path=self.owned_path, prefix=self.prefix, priority=priority,
+            dataset=value_dict.get("dataset"),
+            groupid=value_dict.get("groupid")
+        )
+        final_val = json.dumps(value_dict)
+        self.client.create(self.running_job_path, final_val, sequence=True)
+
+    def update_state(self, state):
+        # update state in owned job
+        job = self.get_job_from_path(self.running_job_path)
+        job_object = json.loads(job)
+        job_object["state"] = state
+        job_updated = json.dumps(job_object)
+        self.client.retry(self.client.set, self.running_job_path, job_updated)
+        if state == Jobstate.SUCCESSFUL:
+            self.clear_running_path()
+
+    def _check_put_arguments(self, value, priority=100):
+        if not isinstance(value, bytes):
+            raise TypeError("value must be a byte string")
+        if not isinstance(priority, int):
+            raise TypeError("priority must be an int")
+        elif priority < 0 or priority > 999:
+            raise ValueError("priority must be between 0 and 999")
+
     def run(self):
         while True:
             if not self.available():
@@ -88,22 +128,27 @@ class Slave(threading.Thread):
                 continue
             else:
                 # the name of each ZNode will be in the form of
-                # entry-created_order-dataset:groupid
+                # entry-priority-dataset:groupid-created_order
                 # job_id should be identified by dataset:groupid
+                # entry[-1] is created_order entry[1] is priority
                 self.unowned_job = self.client.get_children('/unowned')
-                self.unowned_job.sort()
+
+                # -int(entry.split("-")[1]) changes the sort order to descending order
+                sorted(self.unowned_job, key=lambda entry: (-int(entry.split("-")[1]), entry.split("-")[-1]))
 
                 job = self.get_job_from_list()
 
                 if job:
+                    self.own_job(job)
                     self.execute_job(job)
                 elif self.wait_for_work():
                     time.sleep(1)
                     logging.debug("waiting for a new job that satisfy")
                 else:
                     # get the oldest job
-                    self.unowned_job.sort()
+                    sorted(self.unowned_job, key=lambda entry: (-int(entry.split("-")[1]), entry.split("-")[-1]))
                     job = self.get_job(self.unowned_job[0])
+                    self.own_job(job)
                     self.execute_job(job)
 
     def wait_for_work(self):
@@ -116,17 +161,20 @@ class Slave(threading.Thread):
 
     def execute_job(self, job):
         job_object = json.loads(job)
-        self.run_task(dataset=job_object.get('dataset'), groupid=job_object.get('groupid'), slots_needed=1)
+        self.run_task(job_path=self.running_job_path, dataset=job_object.get('dataset'),
+                      groupid=job_object.get('groupid'), slots_needed=1)
 
-    def run_task(self, dataset, groupid, slots_needed=1):
+    def run_task(self, job_path, dataset, groupid, slots_needed=1):
         # let the thread run
         worker_name = "worker"
-        key = str(dataset) + "-" + str(groupid)
+        key = str(dataset) + ":" + str(groupid)
         cache_data = self.cache.get(key)
         if not cache_data:
-            t = Executor(parent=self, name=worker_name, target=fetch_and_execute, daemon=True, args=[self.cache, key])
+            t = Executor(job_path=job_path, parent=self, name=worker_name, target=fetch_and_execute, daemon=True,
+                         args=[self.cache, key])
         else:
-            t = Executor(parent=self, name=worker_name, target=execute_with_cache, daemon=True, args=[cache_data])
+            t = Executor(job_path=job_path, parent=self, name=worker_name, target=execute_with_cache, daemon=True,
+                         args=[cache_data])
         t.start()
 
     def allocate(self, slots_allocated=1):
@@ -141,10 +189,8 @@ class Slave(threading.Thread):
         self.available_executor += slots_released
         print("Available Executor: " + str(self.__available_resources()))
 
-    def notify_master(self):
-        # Some Notifying Method
-        if self.task_pool.qsize == 0:
-            print("Notifying master")
+    def clear_running_path(self):
+        self.running_job_path = ""
 
     def available(self):
         return self.available_executor > 0
