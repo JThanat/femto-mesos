@@ -1,7 +1,7 @@
 from kazoo.client import KazooClient
 
 zk = KazooClient(hosts='127.0.0.1:2181')
-
+zk.start()
 # @zk.add_listener
 # def watch_for_ro(state):
 #     if state == KazooState.CONNECTED:
@@ -19,8 +19,8 @@ zk = KazooClient(hosts='127.0.0.1:2181')
 # q2 = myQueue(zk, '/zookeeper/queue')
 # q.put('Hello From My Queue')
 
-zk.create('owned', "owned branch")
-zk.create('unowned', "unowned branch")
+#zk.create('owned', "owned branch")
+#zk.create('unowned', "unowned branch")
 
 from framework.job import Jobstate
 import json
