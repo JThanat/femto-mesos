@@ -34,8 +34,8 @@ class Slave(threading.Thread):
         self.unowned_job = []
 
         self.path = path
-        self.unowned_path = self.path + "/unowned_path"
-        self.owned_path = self.path + "/owned_path"
+        self.unowned_path = self.path + "/unowned"
+        self.owned_path = self.path + "/owned"
         self.running_job_path = ""
         self.structured_paths = (self.path, self.unowned_path, self.owned_path)
         self.ensured_path = False
