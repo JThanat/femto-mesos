@@ -107,8 +107,8 @@ class Slave(threading.Thread):
         job_object["state"] = state
         job_updated = json.dumps(job_object)
         self.client.retry(self.client.set, self.running_job_path, job_updated)
-        if state == Jobstate.SUCCESSFUL:
-            self.clear_running_path()
+        # if state == Jobstate.SUCCESSFUL:
+        #     self.clear_running_path()
 
     def _check_put_arguments(self, value, priority=100):
         if not isinstance(value, bytes):
