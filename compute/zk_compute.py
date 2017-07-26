@@ -91,7 +91,7 @@ class Slave(threading.Thread):
         self._ensure_paths()
         value_dict = json.loads(value)
         value_dict["state"] = Jobstate.RUNNING
-        value_dict["worker"] = self.slave_id
+        value_dict["worker"] = str(self.slave_id)
         self.running_job_path = '{path}/{prefix}{priority:03d}-{dataset}:{groupid}-'.format(
             path=self.owned_path, prefix=self.prefix, priority=priority,
             dataset=value_dict.get("dataset"),
