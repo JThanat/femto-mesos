@@ -44,8 +44,8 @@ for i in range(8):
     )
     zk.create(path, json_str, sequence=True)
 
-    from compute.zk_compute import *
+from compute.zk_compute import *
 
-    slave = Slave(zk,"/")
-    slave.start()
-    slave.join()
+slave = Slave(zk,"/")
+slave.start()
+slave.join()
