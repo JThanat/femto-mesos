@@ -22,7 +22,7 @@ zk.start()
 #zk.create('owned', "owned branch")
 #zk.create('unowned', "unowned branch")
 
-from framework.job import Jobstate
+from zookeeper.job import Jobstate
 import json
 
 prefix = "entry-"
