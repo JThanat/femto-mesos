@@ -66,7 +66,7 @@ class Slave(threading.Thread):
         return self.client.retry(self._inner_get, path)
 
     def get_job_from_path(self, path):
-        return self.client.retry(self._inner_get, path)
+        return self.client.retry(self._inner_get_for_update, path)
 
     def _inner_get(self, path):
         try:
@@ -83,6 +83,14 @@ class Slave(threading.Thread):
             # by the other process
             raise ForceRetryError()
         del self.unowned_job[:]
+        return data
+
+    def _inner_get_for_update(self, path):
+        try:
+            data, stat = self.client.get(path)
+        except NoNodeError:
+            raise ForceRetryError()
+
         return data
 
     def own_job(self, value, priority=100):
