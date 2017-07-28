@@ -141,6 +141,10 @@ class Slave(threading.Thread):
                 # entry[-1] is created_order entry[1] is priority
                 self.unowned_job = self.client.get_children('/unowned')
 
+                if len(self.unowned_job) == 0:
+                    # no more task to do
+                    continue
+
                 # -int(entry.split("-")[1]) changes the sort order to descending order
                 self.unowned_job = sorted(self.unowned_job, key=lambda entry: (-int(entry.split("-")[1]), entry.split("-")[-1]))
 
