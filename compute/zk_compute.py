@@ -106,6 +106,7 @@ class Slave(threading.Thread):
             groupid=value_dict.get("groupid")
         )
         final_val = json.dumps(value_dict)
+        # TODO change from a single variable to dictionary with the worker_id as key and the path as value
         self.running_job_path = self.client.create(path, final_val, sequence=True)
 
     def update_state(self, state):
