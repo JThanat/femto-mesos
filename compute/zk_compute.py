@@ -56,7 +56,7 @@ class Slave(threading.Thread):
         :return: job_id or None
         """
         for job in self.unowned_job:
-            job_id = job.split("-")[-1]
+            job_id = job.split("-")[2]
             if self.cache.get(job_id):
                 return self.get_job(job)
         return None
