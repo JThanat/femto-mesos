@@ -31,6 +31,8 @@ priority = 100
 from dispatcher.dispathcer import Dispatcher
 
 dispatcher = Dispatcher(client=zk)
+dispatcher.start()
+
 work_queue = dispatcher.work_queue
 
 for i in range(8):
@@ -51,6 +53,6 @@ for i in range(8):
 
 from compute.zk_compute import *
 
-slave = Slave(zk,"/")
-slave.start()
-slave.join()
+# slave = Slave(zk,"/")
+# slave.start()
+# slave.join()
