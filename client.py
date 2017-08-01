@@ -11,6 +11,7 @@ zk.start()
 if enable_create == '1':
     zk.create('owned', "owned branch")
     zk.create('unowned', "unowned branch")
+    zk.create('done', "done branch")
 
 if enable_dispatcher == '1':
     from dispatcher.dispathcer import Dispatcher

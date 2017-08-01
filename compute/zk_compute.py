@@ -34,8 +34,9 @@ class Slave(threading.Thread):
         self.unowned_job = []
 
         self.path = path
-        self.unowned_path = self.path + "/unowned"
-        self.owned_path = self.path + "/owned"
+        self.unowned_path = self.path + "unowned"
+        self.owned_path = self.path + "owned"
+        self.done_path = self.path + "done"
         self.running_job_path = ""
         self.structured_paths = (self.path, self.unowned_path, self.owned_path)
         self.ensured_path = False
@@ -112,10 +113,23 @@ class Slave(threading.Thread):
     def update_state(self, state):
         # update state in owned job
         job = self.get_job_from_path(self.running_job_path)
+        priority = int(self.running_job_path.split("-")[1])
         job_object = json.loads(job)
         job_object["state"] = state
         job_updated = json.dumps(job_object)
-        self.client.retry(self.client.set, self.running_job_path, job_updated)
+        if state == Jobstate.SUCCESSFUL:
+            finish_path = '{path}/{prefix}{priority:03d}-{dataset}:{groupid}-'.format(
+                path=self.done_path, prefix=self.prefix, priority=priority,
+                dataset=job_object.get("dataset"),
+                groupid=job_object.get("groupid")
+            )
+            self.client.create(finish_path, job_updated, sequence=True)
+            try:
+                self.client.delete(self.running_job_path)
+            except NoNodeError:
+                raise ForceRetryError()
+        else:
+            self.client.retry(self.client.set, self.running_job_path, job_updated)
         # if state == Jobstate.SUCCESSFUL:
         #     self.clear_running_path()
 
