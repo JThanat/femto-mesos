@@ -28,21 +28,26 @@ import json
 prefix = "entry-"
 priority = 100
 
+from dispatcher.dispathcer import Dispatcher
+
+dispatcher = Dispatcher(client=zk)
+work_queue = dispatcher.work_queue
+
 for i in range(8):
     d = {}
     d["dataset"] = i % 4
     d["groupid"] = i % 4
-    d["state"] = Jobstate.PENDING
-    d["worker_node"] = None
-    json_str = json.dumps(d)
-    path = '{path}/{prefix}{priority:03d}-{dataset}:{groupid}-'.format(
-        path="/unowned",
-        prefix=prefix,
-        priority=priority,
-        dataset=d["dataset"],
-        groupid=d["groupid"]
-    )
-    zk.create(path, json_str, sequence=True)
+    work_queue.put(d)
+    # d["state"] = Jobstate.PENDING
+    # d["worker_node"] = None
+    # json_str = json.dumps(d)
+    # path = '{path}/{prefix}{priority:03d}-{dataset}:{groupid}-'.format(
+    #     path="/unowned",
+    #     prefix=prefix,
+    #     priority=priority,
+    #     dataset=d["dataset"],
+    #     groupid=d["groupid"]
+    # )
 
 from compute.zk_compute import *
 
