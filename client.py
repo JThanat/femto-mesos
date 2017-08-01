@@ -32,6 +32,7 @@ from dispatcher.dispathcer import Dispatcher
 
 dispatcher = Dispatcher(client=zk)
 dispatcher.start()
+dispatcher.join()
 
 work_queue = dispatcher.work_queue
 
