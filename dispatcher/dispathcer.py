@@ -5,6 +5,10 @@ import time
 from Queue import Queue
 from dispatcher_exec import *
 
+logging.basicConfig(filename="test.log",
+                    level=logging.DEBUG,
+                    format="(%(threadName)-10s) %(message)s",
+                    )
 
 class Dispatcher(threading.Thread):
     __default_executor_number = 4

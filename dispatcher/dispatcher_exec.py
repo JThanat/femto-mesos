@@ -3,6 +3,11 @@ import threading
 import logging
 from zookeeper.job import Jobstate
 
+logging.basicConfig(filename="test.log",
+                    level=logging.DEBUG,
+                    format="(%(threadName)-10s) %(message)s",
+                    )
+
 class Dispatch_Executor(threading.Thread):
     def __init__(self, parent=None, **kwargs):
         self.parent = parent

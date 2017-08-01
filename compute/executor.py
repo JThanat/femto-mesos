@@ -5,6 +5,11 @@ from random import *
 
 from zookeeper.job import Jobstate
 
+logging.basicConfig(filename="test.log",
+                    level=logging.DEBUG,
+                    format="(%(threadName)-10s) %(message)s",
+                    )
+
 
 class Executor(threading.Thread):
     def __init__(self, job_path, parent=None, **kwargs):

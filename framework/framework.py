@@ -11,7 +11,8 @@ TOTAL_TASKS = 5
 TASK_CPUS = 1
 TASK_MEM = 128
 
-logging.basicConfig(level=logging.DEBUG,
+logging.basicConfig(filename="test.log",
+                    level=logging.DEBUG,
                     format="(%(threadName)-10s) %(message)s",
                     )
 
