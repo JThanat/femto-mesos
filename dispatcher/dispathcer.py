@@ -37,7 +37,8 @@ class Dispatcher(threading.Thread):
 
     def run_task(self, dataset, groupid):
         worker_name = self.node_name + "-" + "worker"
-        t = Dispatch_Executor(parent=self, name=worker_name, target=put_job, daemon=True, args=[self.client, dataset, groupid])
+        t = Dispatch_Executor(parent=self, name=worker_name, target=put_job, args=[self.client, dataset, groupid])
+        t.daemon = True
         t.start()
 
     def allocate(self):
