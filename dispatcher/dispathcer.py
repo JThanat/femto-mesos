@@ -63,3 +63,10 @@ class Dispatcher(BaseDispatcher):
 
     def available(self):
         return self.available_thread > 0
+
+class Watcher(BaseDispatcher):
+    def __init__(self, client, available_thread=1, **kwargs):
+        self.client = client
+        super(Watcher, self).__init__(client, available_thread, **kwargs)
+
+
