@@ -9,7 +9,7 @@ from dispatcher_exec import *
 class Dispatcher(threading.Thread):
     __default_executor_number = 4
 
-    def __init__(self, client, available_thread=4, ):
+    def __init__(self, client, available_thread=4, **kwargs):
         self.node_name = "dispatcher"
         self.work_queue = Queue()
         self.available_thread = available_thread
