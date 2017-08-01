@@ -2,6 +2,9 @@ import json
 import threading
 import logging
 from zookeeper.job import Jobstate
+from kazoo.exceptions import NoNodeError
+from kazoo.retry import ForceRetryError
+from kazoo.client import KazooClient
 
 logging.basicConfig(filename="test.log",
                     level=logging.DEBUG,
@@ -40,6 +43,36 @@ def put_job(client, dataset, groupid, priority=100):
     client.create(path, final_val, sequence=True)
 
 
-def poll_job(dataset):
+def poll_job(client):
     # This should keep track of the job
-    pass
+    t = threading.currentThread()
+    job = get(client)
+    job_object = json.loads(job)
+    logging.debug("getting data ".format(dataset=job_object.get("dataset"), groupid=job_object.get("groupid")))
+    return job_object
+
+
+def get(client):
+    children = client.get_children('/done')
+    if len(children) == 0:
+        return
+    children = sorted(children, key=lambda entry: (-int(entry.split("-")[1]), entry.split("-")[-1]))
+    path = children[0]
+    return client.retry(_inner_get, path)
+
+
+def _inner_get(client, path):
+    try:
+        data, stat = client.get(path)
+    except NoNodeError:
+        # the first node has vanished in the meantime, try to
+        # get another one
+        raise ForceRetryError()
+    try:
+        client.delete(path)
+    except NoNodeError:
+        # we were able to get the data but someone else has removed
+        # the node in the meantime. consider the item as processed
+        # by the other process
+        raise ForceRetryError()
+    return data
