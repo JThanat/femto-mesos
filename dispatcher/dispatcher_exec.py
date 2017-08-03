@@ -47,19 +47,29 @@ def poll_job(client):
     # This should keep track of the job
     t = threading.currentThread()
     job = get(client)
+
+    if not job:
+        logging.debug("No data to return")
+        return None
+
     job_object = json.loads(job)
-    logging.debug("getting data ".format(dataset=job_object.get("dataset"), groupid=job_object.get("groupid")))
+    logging.debug("return data {dataset}:{groupid}".format(dataset=job_object.get("dataset"), groupid=job_object.get("groupid")))
     return job_object
 
 
 def get(client):
+    t = threading.currentThread()
     children = client.get_children('/done')
     if len(children) == 0:
-        return
+        return None
     children = sorted(children, key=lambda entry: (-int(entry.split("-")[1]), entry.split("-")[-1]))
-    path = children[0]
-    return client.retry(_inner_get, path)
-
+    entry_path = children[0]
+    done_path = '/done'
+    path = "{path}/{entry_path}".format(
+        path=done_path,
+        entry_path=entry_path
+    )
+    return client.retry(_inner_get, client, path)
 
 def _inner_get(client, path):
     try:
