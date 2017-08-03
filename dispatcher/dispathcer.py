@@ -65,8 +65,25 @@ class Dispatcher(BaseDispatcher):
         return self.available_thread > 0
 
 class Watcher(BaseDispatcher):
-    def __init__(self, client, available_thread=1, **kwargs):
+    def __init__(self, client, work_queue, available_thread=1, **kwargs):
         self.client = client
+        self.work_queue = work_queue
+        self.node_name = "watcher"
         super(Watcher, self).__init__(client, available_thread, **kwargs)
+
+    def run(self):
+        while True:
+            if not self.available():
+                time.sleep(1)
+                logging.debug("waiting 100 ms for available thread")
+                continue
+            elif self.available():
+                self.run_task()
+
+    def run_task(self):
+        worker_name = self.node_name + "-" + "worker"
+        t = Dispatch_Executor(parent=self, name=worker_name, target=poll_job, args=(self.client,))
+        t.daemon = True
+        t.start()
 
 
