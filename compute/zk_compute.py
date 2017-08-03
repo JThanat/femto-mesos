@@ -4,15 +4,23 @@ import uuid
 from kazoo.exceptions import NoNodeError
 from kazoo.retry import ForceRetryError
 
+from pymongo import MongoClient
+
 from executor import *
 from zookeeper.job import Jobstate
 
+logging.basicConfig(filename="test.log",
+                    level=logging.DEBUG,
+                    format="(%(threadName)-10s) %(message)s",
+                    )
 
 class Slave(threading.Thread):
     # This class define the compute node of the system.
     # This will represents a cluster of compute node using thread for each worker
     __default_executor_number = 4
     prefix = "entry-"
+    mongo_host = "localhost"
+    mongo_port = 27017
 
     def __init__(self, client, path, slave_id=None, executor_number=1, **kwargs):
 
@@ -42,6 +50,11 @@ class Slave(threading.Thread):
         self.ensured_path = False
 
         self._ensure_paths()
+
+        # mongo initialize
+        self.mongo_client = MongoClient(self.mongo_host, self.mongo_port)
+        self.db = self.mongo_client["result_database"]
+        self.results = self.db.results
 
         super(Slave, self).__init__(**kwargs)
 
@@ -124,6 +137,9 @@ class Slave(threading.Thread):
                 groupid=job_object.get("groupid")
             )
             self.client.create(finish_path, job_updated, sequence=True)
+            # save in Mongo
+            job_mongo_id = self.results.insert_one(job_object).inserted_id
+            logging.debug("finish saving job_id:{job_mongo_id} in mongo".format(job_mongo_id=job_mongo_id))
             try:
                 self.client.delete(self.running_job_path)
             except NoNodeError:
@@ -223,3 +239,4 @@ class Slave(threading.Thread):
 
     def __available_resources(self):
         return self.available_executor
+
