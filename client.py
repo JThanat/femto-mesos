@@ -12,15 +12,14 @@ enable_watcher = sys.argv[4]
 zk = KazooClient(hosts='127.0.0.1:2181')
 zk.start()
 
-slave = Slave(zk,"/")
+if enable_create == '1':
+    zk.create('/unowned', "unowned branch")
+    zk.create('/done', "done branch")
+    zk.create('/owned', "owned branch")
+
+slave = Slave(zk, "/")
 dispatcher = Dispatcher(client=zk)
 watcher = Watcher(zk, dispatcher.work_queue)
-
-
-if enable_create == '1':
-    zk.create('owned', "owned branch")
-    zk.create('unowned', "unowned branch")
-    zk.create('done', "done branch")
 
 if enable_dispatcher == '1':
     prefix = "entry-"
@@ -29,10 +28,10 @@ if enable_dispatcher == '1':
     dispatcher.start()
     work_queue = dispatcher.work_queue
 
-    for i in range(8):
+    for i in range(16):
         d = {}
-        d["dataset"] = i % 4
-        d["groupid"] = i % 4
+        d["dataset"] = i % 5
+        d["groupid"] = i % 5
         work_queue.put(d)
 
         # d["state"] = Jobstate.PENDING
