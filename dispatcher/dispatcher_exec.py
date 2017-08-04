@@ -3,7 +3,7 @@ import threading
 import logging
 from zookeeper.job import Jobstate
 from kazoo.exceptions import NoNodeError
-from kazoo.retry import ForceRetryError
+from kazoo.retry import ForceRetryError, KazooRetry, RetryFailedError
 from pymongo import MongoClient
 from kazoo.client import KazooClient
 
@@ -66,7 +66,9 @@ def poll_job(client):
 
     logging.debug("return data {dataset}:{groupid} objectid:{objectid}".format(dataset=job_mongo.get("dataset"),
                                                                                groupid=job_mongo.get("groupid"),
+                                                                               objectid=str(job_mongo.get("_id"))))
     return job_object
+
 
 def get(client):
     t = threading.currentThread()
@@ -80,9 +82,16 @@ def get(client):
         path=done_path,
         entry_path=entry_path
     )
-    return client.retry(_inner_get, client, path)
+    kr = KazooRetry(max_tries=3, ignore_expire=False)
+    try:
+        result = kr(_inner_get, client, path)
+    except RetryFailedError:
+        return None
+
+    return result
 
 def _inner_get(client, path):
+    max_retries = 3
     try:
         data, stat = client.get(path)
     except NoNodeError:
