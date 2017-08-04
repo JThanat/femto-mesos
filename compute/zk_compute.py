@@ -2,7 +2,7 @@ import json
 import uuid
 
 from kazoo.exceptions import NoNodeError
-from kazoo.retry import ForceRetryError
+from kazoo.retry import ForceRetryError, KazooRetry, RetryFailedError
 
 from pymongo import MongoClient
 
@@ -78,10 +78,20 @@ class Slave(threading.Thread):
 
     def get_job(self, entry):
         path = self.unowned_path + "/" + str(entry)
-        return self.client.retry(self._inner_get, path)
+        kr = KazooRetry(max_tries=3, ignore_expire=False)
+        try:
+            result = kr(self._inner_get, path)
+        except RetryFailedError:
+            return None
+        return result
 
     def get_job_from_path(self, path):
-        return self.client.retry(self._inner_get_for_update, path)
+        kr = KazooRetry(max_tries=3, ignore_expire=False)
+        try:
+            result = kr(self._inner_get_for_update, path)
+        except RetryFailedError:
+            return None
+        return result
 
     def _inner_get(self, path):
         try:
