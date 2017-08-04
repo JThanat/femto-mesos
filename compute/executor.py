@@ -18,6 +18,8 @@ class Executor(threading.Thread):
         super(Executor, self).__init__(**kwargs)
 
     def run(self):
+        if self.parent.available_executor == 0:
+            return
         self.parent.allocate()
         super(Executor, self).run()
         self.parent.update_state(Jobstate.SUCCESSFUL)
@@ -32,7 +34,7 @@ logging.basicConfig(level=logging.DEBUG,
 def execute_with_cache(cache_data):
     """thread worker function with cache"""
     t = threading.currentThread()
-    pause = randint(5, 10)
+    pause = randint(1, 3)
     logging.debug("working with %s", str(cache_data))
     time.sleep(pause)
     logging.debug("finish")
@@ -41,11 +43,12 @@ def execute_with_cache(cache_data):
 def fetch_and_execute(cache, key):
     """thread worker function for worker without cache"""
     t = threading.currentThread()
-    fetching_time = randint(3, 5)
+    fetching_time = randint(2, 4)
     time.sleep(fetching_time)
     logging.debug("fetching %s", key)
     cache[key] = key
-    execution_time = randint(5, 10)
+    execution_time = randint(1, 2)
     time.sleep(execution_time)
     logging.debug("executing %s", cache[key])
     logging.debug("finish")
+    print "finish executing {cache}".format(cache=cache[key])
