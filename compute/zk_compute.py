@@ -14,6 +14,7 @@ logging.basicConfig(filename="test.log",
                     format="(%(threadName)-10s) %(message)s",
                     )
 
+
 class Slave(threading.Thread):
     # This class define the compute node of the system.
     # This will represents a cluster of compute node using thread for each worker
@@ -223,13 +224,13 @@ class Slave(threading.Thread):
         # To make it simple we will run only one executor per allocation fist, the slots_allocated variable
         # will soon be used when multiple executor need to be allocated at a time
         self.available_executor -= slots_allocated
-        print("Available Executor: " + str(self.__available_resources()))
+        print("Allocate - Available Executor: " + str(self.__available_resources()))
 
     def release(self, slots_released=1):
         # To make it simple we will run only one executor per allocation fist, the slots_allocated variable
         # will soon be used when multiple executor need to be allocated at a time
         self.available_executor += slots_released
-        print("Available Executor: " + str(self.__available_resources()))
+        print("Release - Available Executor: " + str(self.__available_resources()))
 
     def clear_running_path(self):
         self.running_job_path = ""

@@ -10,6 +10,7 @@ logging.basicConfig(filename="test.log",
                     format="(%(threadName)-10s) %(message)s",
                     )
 
+
 class BaseDispatcher(threading.Thread):
     def __init__(self, client, available_thread=4, **kwargs):
         self.available_thread = available_thread
@@ -55,19 +56,10 @@ class Dispatcher(BaseDispatcher):
         t.daemon = True
         t.start()
 
-    def allocate(self):
-        self.available_thread -= 1
-
-    def release(self):
-        self.available_thread += 1
-
-    def available(self):
-        return self.available_thread > 0
 
 class Watcher(BaseDispatcher):
     def __init__(self, client, work_queue, available_thread=1, **kwargs):
         self.client = client
-        self.work_queue = work_queue
         self.node_name = "watcher"
         super(Watcher, self).__init__(client, available_thread, **kwargs)
 
@@ -75,7 +67,7 @@ class Watcher(BaseDispatcher):
         while True:
             if not self.available():
                 time.sleep(1)
-                logging.debug("waiting 100 ms for available thread")
+                logging.debug("waiting 100 ms for available watcher")
                 continue
             elif self.available():
                 self.run_task()
@@ -85,5 +77,3 @@ class Watcher(BaseDispatcher):
         t = Dispatch_Executor(parent=self, name=worker_name, target=poll_job, args=(self.client,))
         t.daemon = True
         t.start()
-
-
