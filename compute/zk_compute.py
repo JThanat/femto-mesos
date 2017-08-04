@@ -9,6 +9,8 @@ from pymongo import MongoClient
 from executor import *
 from zookeeper.job import Jobstate
 
+from Queue import Queue
+
 logging.basicConfig(filename="test.log",
                     level=logging.DEBUG,
                     format="(%(threadName)-10s) %(message)s",
@@ -46,7 +48,7 @@ class Slave(threading.Thread):
         self.unowned_path = self.path + "unowned"
         self.owned_path = self.path + "owned"
         self.done_path = self.path + "done"
-        self.running_job_path = ""
+        self.running_job_path = Queue()
         self.structured_paths = (self.path, self.unowned_path, self.owned_path)
         self.ensured_path = False
 
@@ -86,7 +88,7 @@ class Slave(threading.Thread):
         return result
 
     def get_job_from_path(self, path):
-        kr = KazooRetry(max_tries=3, ignore_expire=False)
+        kr = KazooRetry(max_tries=0, ignore_expire=False)
         try:
             result = kr(self._inner_get_for_update, path)
         except RetryFailedError:
@@ -132,12 +134,16 @@ class Slave(threading.Thread):
         )
         final_val = json.dumps(value_dict)
         # TODO change from a single variable to dictionary with the worker_id as key and the path as value
-        self.running_job_path = self.client.create(path, final_val, sequence=True)
+        self.running_job_path.put(self.client.create(path, final_val, sequence=True))
 
     def update_state(self, state):
         # update state in owned job
-        job = self.get_job_from_path(self.running_job_path)
-        priority = int(self.running_job_path.split("-")[1])
+        current_job_path = self.running_job_path.get()
+        job = self.get_job_from_path(current_job_path)
+        if not job:
+            logging.debug("Fail to update State, No Job in {path}".format(path=self.running_job_path))
+            return
+        priority = int(current_job_path.split("-")[1])
         job_object = json.loads(job)
         job_object["state"] = state
         job_updated = json.dumps(job_object)
@@ -152,11 +158,11 @@ class Slave(threading.Thread):
             job_mongo_id = self.results.insert_one(job_object).inserted_id
             logging.debug("finish saving job_id:{job_mongo_id} in mongo".format(job_mongo_id=job_mongo_id))
             try:
-                self.client.delete(self.running_job_path)
+                self.client.delete(current_job_path)
             except NoNodeError:
                 raise ForceRetryError()
         else:
-            self.client.retry(self.client.set, self.running_job_path, job_updated)
+            self.client.retry(self.client.set, current_job_path, job_updated)
         # if state == Jobstate.SUCCESSFUL:
         #     self.clear_running_path()
 
