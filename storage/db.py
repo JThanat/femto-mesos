@@ -3,7 +3,7 @@ from pymongo import MongoClient
 
 class MongoInitializer(object):
     HOST = 'localhost'
-    PORT = 27917
+    PORT = 27017
 
     def __init__(self, host=HOST, port=PORT, database_name="result_database", collectioname="results"):
         self.mongo_client = MongoClient(host, port)
