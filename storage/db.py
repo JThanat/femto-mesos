@@ -12,6 +12,6 @@ class MongoInitializer(object):
 
     def get_from_key(self, dataset, groupid):
         mongo_object = self.collection.find_one({"dataset": dataset,
-                                              "groupid": groupid
-                                              })
+                                                 "groupid": groupid
+                                                 })
         return mongo_object
