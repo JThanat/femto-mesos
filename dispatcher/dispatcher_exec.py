@@ -5,6 +5,7 @@ from zookeeper.job import Jobstate
 from kazoo.exceptions import NoNodeError
 from kazoo.retry import ForceRetryError, KazooRetry, RetryFailedError
 from pymongo import MongoClient
+from storage.db import MongoInitializer
 from kazoo.client import KazooClient
 
 logging.basicConfig(filename="test.log",
@@ -56,14 +57,10 @@ def poll_job(client):
     job_object = json.loads(job)
 
     #TODO - Move Mongo somewhere make sense
-    mongo_client = MongoClient('localhost', 27017)
-    db = mongo_client["result_database"]
-    results = db.results
-
-    job_mongo = results.find_one({"dataset":job_object.get("dataset"),
-                      "groupid":job_object.get("groupid")
-                      })
-
+    mongodb = MongoInitializer()
+    db = mongodb.db
+    results = mongodb.collection
+    job_mongo = mongodb.get_from_key(job_object.get("dataset"), job_object.get("groupid"))
     logging.debug("return data {dataset}:{groupid} objectid:{objectid}".format(dataset=job_mongo.get("dataset"),
                                                                                groupid=job_mongo.get("groupid"),
                                                                                objectid=str(job_mongo.get("_id"))))

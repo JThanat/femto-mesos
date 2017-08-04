@@ -11,6 +11,7 @@ class MongoInitializer(object):
         self.collection = self.db[collectioname]
 
     def get_from_key(self, dataset, groupid):
-        job_mongo = self.collection.find_one({"dataset": dataset,
+        mongo_object = self.collection.find_one({"dataset": dataset,
                                               "groupid": groupid
                                               })
+        return mongo_object

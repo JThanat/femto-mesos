@@ -4,7 +4,7 @@ import uuid
 from kazoo.exceptions import NoNodeError
 from kazoo.retry import ForceRetryError, KazooRetry, RetryFailedError
 
-from pymongo import MongoClient
+from storage.db import MongoInitializer
 
 from executor import *
 from zookeeper.job import Jobstate
@@ -55,9 +55,9 @@ class Slave(threading.Thread):
         self._ensure_paths()
 
         # mongo initialize
-        self.mongo_client = MongoClient(self.mongo_host, self.mongo_port)
-        self.db = self.mongo_client["result_database"]
-        self.results = self.db.results
+        self.mongodb = MongoInitializer()
+        self.db = self.mongodb.db
+        self.results = self.mongodb.collection
 
         super(Slave, self).__init__(**kwargs)
 
