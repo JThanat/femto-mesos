@@ -4,6 +4,7 @@ import logging
 from zookeeper.job import Jobstate
 from kazoo.exceptions import NoNodeError
 from kazoo.retry import ForceRetryError
+from pymongo import MongoClient
 from kazoo.client import KazooClient
 
 logging.basicConfig(filename="test.log",
@@ -53,9 +54,19 @@ def poll_job(client):
         return None
 
     job_object = json.loads(job)
-    logging.debug("return data {dataset}:{groupid}".format(dataset=job_object.get("dataset"), groupid=job_object.get("groupid")))
-    return job_object
 
+    #TODO - Move Mongo somewhere make sense
+    mongo_client = MongoClient('localhost', 27017)
+    db = mongo_client["result_database"]
+    results = db.results
+
+    job_mongo = results.find_one({"dataset":job_object.get("dataset"),
+                      "groupid":job_object.get("groupid")
+                      })
+
+    logging.debug("return data {dataset}:{groupid} objectid:{objectid}".format(dataset=job_mongo.get("dataset"),
+                                                                               groupid=job_mongo.get("groupid"),
+    return job_object
 
 def get(client):
     t = threading.currentThread()
