@@ -18,8 +18,6 @@ class Executor(threading.Thread):
         super(Executor, self).__init__(**kwargs)
 
     def run(self):
-        if self.parent.available_executor == 0:
-            return
         self.parent.allocate()
         super(Executor, self).run()
         self.parent.update_state(Jobstate.SUCCESSFUL)
