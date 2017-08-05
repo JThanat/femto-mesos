@@ -1,17 +1,19 @@
 import json
-import threading
 import logging
-from zookeeper.job import Jobstate
+import threading
+import time
+
 from kazoo.exceptions import NoNodeError
 from kazoo.retry import ForceRetryError, KazooRetry, RetryFailedError
-from pymongo import MongoClient
+
 from storage.db import MongoInitializer
-from kazoo.client import KazooClient
+from zookeeper.job import Jobstate
 
 logging.basicConfig(filename="test.log",
                     level=logging.DEBUG,
                     format="(%(threadName)-10s) %(message)s",
                     )
+
 
 class Dispatch_Executor(threading.Thread):
     def __init__(self, parent=None, **kwargs):
@@ -22,6 +24,54 @@ class Dispatch_Executor(threading.Thread):
         self.parent.allocate()
         super(Dispatch_Executor, self).run()
         self.parent.release()
+
+
+def execute_job(mongodb, client, dataset, groupid, priority=100):
+    db_result = mongodb.get_from_key(dataset, groupid)
+    if not db_result:
+        owned_jobs = check_zk(client, dataset, groupid)
+        if len(owned_jobs) == 0:
+            put_job(client, dataset, groupid, priority=priority)
+        else:
+            # TODO wait and get the result
+            db_result = wait_job_and_return(mongodb, client, dataset, groupid)
+            logging.debug("return executed {dataset}:{groupid} objectid:{objectid} after waiting".format(
+                dataset=db_result.get("dataset"),
+                groupid=db_result.get("groupid"),
+                objectid=str(db_result.get("_id"))))
+
+    else:
+        logging.debug("return already executed data {dataset}:{groupid} objectid:{objectid}".format(
+            dataset=db_result.get("dataset"),
+            groupid=db_result.get("groupid"),
+            objectid=str(db_result.get("_id"))))
+        return
+
+
+def wait_job_and_return(mongodb, client, dataset, groupid):
+    db_result = mongodb.get_from_key(dataset, groupid)
+    if not db_result:
+        logging.debug("waiting 100ms for {dataset}:{groupid} to be executed".format(
+            dataset=dataset,
+            groupid=groupid
+        ))
+        time.sleep(1)
+        return wait_job_and_return(mongodb, client, dataset, groupid)
+    else:
+        return db_result
+
+
+def check_zk(client, dataset, groupid):
+    t = threading.currentThread()
+    owned_path = "/owned"
+    unowned_path = "/unowned"
+    finding_key = "{dataset}:{groupid}".format(dataset=dataset, groupid=groupid)
+    owned_job = client.get_children(owned_path)
+    unowned_job = client.get_children(unowned_path)
+    unowned_job = filter(lambda j: j.split("-")[2] == finding_key, unowned_job)
+    owned_job = filter(lambda j: j.split("-")[2] == finding_key, owned_job)
+    return owned_job + unowned_job
+
 
 def put_job(client, dataset, groupid, priority=100):
     t = threading.currentThread()
@@ -43,6 +93,7 @@ def put_job(client, dataset, groupid, priority=100):
     )
     final_val = json.dumps(value_dict)
     client.create(path, final_val, sequence=True)
+    return
 
 
 def poll_job(client):
@@ -56,7 +107,7 @@ def poll_job(client):
 
     job_object = json.loads(job)
 
-    #TODO - Move Mongo somewhere make sense
+    # TODO - Move Mongo somewhere make sense
     mongodb = MongoInitializer()
     db = mongodb.db
     results = mongodb.collection
@@ -86,6 +137,7 @@ def get(client):
         return None
 
     return result
+
 
 def _inner_get(client, path):
     max_retries = 3
