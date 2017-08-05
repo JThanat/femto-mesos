@@ -3,11 +3,13 @@ from kazoo.client import KazooClient
 from compute.zk_compute import *
 from dispatcher.dispathcer import Dispatcher
 from dispatcher.dispathcer import Watcher
+from storage.db import MongoInitializer
 
 enable_create = sys.argv[1]
-enable_dispatcher = sys.argv[2]
-enable_slave = sys.argv[3]
-enable_watcher = sys.argv[4]
+delete_all_collection = sys.argv[2]
+enable_dispatcher = sys.argv[3]
+enable_slave = sys.argv[4]
+enable_watcher = sys.argv[5]
 
 zk = KazooClient(hosts='127.0.0.1:2181')
 zk.start()
@@ -17,6 +19,13 @@ if enable_create == '1':
     zk.create('/done', "done branch")
     zk.create('/owned', "owned branch")
 
+if delete_all_collection == '1':
+    mongodb = MongoInitializer()
+    results = mongodb.collection
+    result = results.delete_many({})
+    print "delete: " + str(result.deleted_count) + " documents"
+
+
 slave = Slave(zk, "/")
 dispatcher = Dispatcher(client=zk)
 watcher = Watcher(zk, dispatcher.work_queue)
@@ -25,10 +34,10 @@ if enable_dispatcher == '1':
     prefix = "entry-"
     priority = 100
 
-    dispatcher.start()
     work_queue = dispatcher.work_queue
+    dispatcher.start()
 
-    for i in range(16):
+    for i in range(4096):
         d = {}
         d["dataset"] = i % 5
         d["groupid"] = i % 5
