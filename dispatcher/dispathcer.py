@@ -5,6 +5,8 @@ import time
 from Queue import Queue
 from dispatcher_exec import *
 
+from storage.db import MongoInitializer
+
 logging.basicConfig(filename="test.log",
                     level=logging.DEBUG,
                     format="(%(threadName)-10s) %(message)s",
@@ -33,6 +35,7 @@ class Dispatcher(BaseDispatcher):
     def __init__(self, client, available_thread=4, **kwargs):
         self.node_name = "dispatcher"
         self.work_queue = Queue()
+        self.mongodb = MongoInitializer()
         super(Dispatcher, self).__init__(client, available_thread, **kwargs)
 
     def run(self):
@@ -43,8 +46,13 @@ class Dispatcher(BaseDispatcher):
                 continue
             elif self.available() and not self.work_queue.empty():
                 task = self.work_queue.get()
+                if self.work_queue.empty():
+                    print "work_queue is empty"
                 if task:
-                    self.run_task(dataset=task.get('dataset'), groupid=task.get('groupid'))
+                    # check if this job is in the database or not
+                    dataset = task.get('dataset')
+                    groupid = task.get('groupid')
+                    self.run_task(dataset=dataset, groupid=groupid)
                 else:
                     continue
             else:
@@ -52,7 +60,7 @@ class Dispatcher(BaseDispatcher):
 
     def run_task(self, dataset, groupid):
         worker_name = self.node_name + "-" + "worker"
-        t = Dispatch_Executor(parent=self, name=worker_name, target=put_job, args=[self.client, dataset, groupid])
+        t = Dispatch_Executor(parent=self, name=worker_name, target=execute_job, args=[self.mongodb, self.client, dataset, groupid])
         t.daemon = True
         t.start()
 
