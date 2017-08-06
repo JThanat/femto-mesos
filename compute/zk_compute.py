@@ -25,7 +25,7 @@ class Slave(threading.Thread):
     mongo_host = "localhost"
     mongo_port = 27017
 
-    def __init__(self, client, path, slave_id=None, executor_number=1, **kwargs):
+    def __init__(self, client, path, slave_id=None, executor_number=4, **kwargs):
 
         """
        :param client: zookeeper client
