@@ -1,6 +1,7 @@
 import logging
 import threading
 import time
+from datetime import datetime
 
 from Queue import Queue
 from dispatcher_exec import *
@@ -39,6 +40,7 @@ class Dispatcher(BaseDispatcher):
         super(Dispatcher, self).__init__(client, available_thread, **kwargs)
 
     def run(self):
+        starttime = datetime.now()
         while True:
             if not self.available():
                 time.sleep(1)
@@ -47,7 +49,9 @@ class Dispatcher(BaseDispatcher):
             elif self.available() and not self.work_queue.empty():
                 task = self.work_queue.get()
                 if self.work_queue.empty():
+                    endtime = datetime.now()
                     print "work_queue is empty"
+                    print "Time used : " + str(endtime - starttime)
                 if task:
                     # check if this job is in the database or not
                     dataset = task.get('dataset')
