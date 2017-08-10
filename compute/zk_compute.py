@@ -11,7 +11,7 @@ from zookeeper.job import Jobstate
 
 from Queue import Queue
 
-logging.basicConfig(filename="running",
+logging.basicConfig(filename="running.log",
                     level=logging.DEBUG,
                     format="(%(threadName)-10s) %(message)s",
                     )
@@ -133,7 +133,6 @@ class Slave(threading.Thread):
             groupid=value_dict.get("groupid")
         )
         final_val = json.dumps(value_dict)
-        # TODO change from a single variable to dictionary with the worker_id as key and the path as value
         self.running_job_path.put(self.client.create(path, final_val, sequence=True))
 
     def update_state(self, state):
