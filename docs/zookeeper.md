@@ -100,9 +100,63 @@ except NoNodeError:
     # we may try to delete again by rasing ForceRetryError()
     raise ForceRetryError()
 ```
- 
 
 ## Error Retry
+Error retry is an important part of Kazoo-Zookeeper because connections to Zookeeper may get interrupted if Zookeeper server goes down or becomes unreachable at the time. Without retry command, these failures will cause an exception to be raised. There are two common way to do retry in Kazoo. The simpler one is to use retry helper. The other way is to use custom retry.
+
+### Retry Helper (function, function_attibute, function_attibute,...)
+`KazooCliet` object contains retry function. With this helper object will retry until it get over the error. This is important as mentioned above that sometime the command is successfully done on the Zookeeper but the result does not return to the client. For example, the client might want to get a newly created node. However, it is not successfully done on the Zookeeper server yet. This might raise NoNode Error. Thus, we let out function retry getting from Zookeeper again.
+
+#### Example:
+```python
+def get(client, path):  
+    return client.retry(_inner_get, path)
+
+def _inner_get(path):
+    try:
+        data, stat = self.client.get(path)
+    except NoNodeError:
+        raise ForceRetryError()
+    return data
+```
+
+### Custom Retry
+Although the helper retry is good, the retry might go forever. Sometimes it is better that we know the behavior of the retry we use. Thus custom retry might be more useful in this case. The following example is part of the Slave class `get_job` from [zk_compute.py](../compute/zk_compute.py). 
+
+<b>Note</b>: 
+`get job` will get the data from a specific path and then remove the path from Zookeeper.
+
+#### Example:
+```python
+from kazoo.retry import ForceRetryError, KazooRetry, RetryFailedError
+
+def get_job(self, entry):
+    path = self.unowned_path + "/" + str(entry)
+    kr = KazooRetry(max_tries=3, ignore_expire=False)
+    try:
+        result = kr(self._inner_get, path)
+    except RetryFailedError:
+        return None
+    return result
+
+def _inner_get(self, path):
+    try:
+        data, stat = self.client.get(path)
+    except NoNodeError:
+        # the first node has vanished in the meantime, try to
+        # get another one
+        raise ForceRetryError()
+    try:
+        self.client.delete(path)
+    except NoNodeError:
+        # we were able to get the data but someone else has removed
+        # the node in the meantime. consider the item as processed
+        # by the other process
+        raise ForceRetryError()
+    return data
+```
+
+The example above shows how to use `KazooRetry` for custom retry. It should be noted that, when `KazooRetry` reach max_retries, it will raise `RetryFailedError`. Therefore, we should handle our code in this case.
 
 
 
