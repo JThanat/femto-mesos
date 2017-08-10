@@ -3,6 +3,9 @@
 ### Standalone Version
 * Download Zookeeper version 3.4.10 from this the official site or this [link](http://www-eu.apache.org/dist/zookeeper/) and unzip the file 
 * Create conf/zoo.cfg to define configuration file. The simple one would look like this. 
+
+#### Example:
+
 ```bash
 # the basic time unit in milliseconds. It is used to do heartbeats 
 # and the minimum session timeout will be twice the tickTime.
@@ -23,6 +26,7 @@ From the document of Kazoo it states that Kazoo is a Python library designed to 
 ### How to connect to Zookeeper
 The simplest way to connect to Zookeeper is to connect without any option. It is import tant to start `Zookeeper(zk.start())` before starting using API in the Zookeeper. Without a proper start, a `ConnectionClosedError` will be thrown. 
 
+#### Example:
 ```python
 from kazoo.client import KazooClient
 zk = KazooClient(hosts='127.0.0.1:2181')
@@ -33,6 +37,7 @@ zk.start()
 
 The example of job owning could be found in the `own_job` function in the [zk_compute.py](../compute/zk_compute.py) To create a new node in the Zookeeper, client object is needed. Client object is the Zookeeper from `KazooClient()`. `path` object is the key to be accessed to Zookeeper. `value` is the value to store in Zookeeper. It should be in string format. `sequence=True` is to let Zookeeper append a unique sequence to the entry name according to the create order. Thus, an older node will have less sequence number. We can get the path with appended sequence to the newly created node from return value.
 
+#### Example:
 ```python
 path = '{path}/{prefix}{priority:03d}-{dataset}:{groupid}-'.format(
             path=self.owned_path, prefix=self.prefix, priority=priority,
@@ -45,6 +50,7 @@ self.running_job_path.put(self.client.create(path, final_val, sequence=True))
 #### Update: client.set(path, value)
 An example of update method is in the update_state function in the Slave Class in [zk_compute.py](../compute/zk_compute.py). `Client.set()` is used for updating the data to the existing node. `client.retry` function is a retry helper used for retrying the function passed into `client.retry`. Further information about retry will be described in the [Error Retry Section](#rror-retry).
 
+#### Example:
 ```python
 else:
     self.client.retry(self.client.set, current_job_path, job_updated)
@@ -56,6 +62,7 @@ To get the data a single line of code `client.get(path)` is enough to get the re
 
 However when getting the value, it should be done using either helper retry or custom retry function because there might be the case that Node does not exist due an creating and deleting from other client. An example can be found in the [Slave](../compute/zk_compute.py) `_inner_get` function. It is possible that we are getting the node that does not exist. If this is the case, then `NoNodeExist` Error will be thrown. 
 
+#### Example:
 ```python
 def get(client, path):  
     return client.retry(_inner_get, path)
@@ -73,6 +80,7 @@ def _inner_get(path):
 #### Get Children: client.get_children(path) : return list of child nodes
 `client.get_children` return all the path to its child nodes in list. The code belows show how to get all the path for child nodes. Because the data returned to us is path to child node, we can make use of child node name. In this case, we can make use of priority and sequence number of the path name to sort the result that we want. 
 
+#### Example:
 ```python
 self.unowned_job = self.client.get_children('/unowned')
 
@@ -84,6 +92,7 @@ self.unowned_job = sorted(self.unowned_job, key=lambda entry: (-int(entry.split(
 #### Delete: client.delete(path) : return delete status
 `client.delete(path)` simply delete the node specified by the path. It may throw `NoNodeError` because it cannot find the node with the path specified. In this case we should handle the error. However, it depends on situation what to do with the Error. 
 
+#### Example:
 ```python
 try:
     self.client.delete(path)
