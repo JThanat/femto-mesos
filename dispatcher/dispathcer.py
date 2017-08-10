@@ -8,7 +8,7 @@ from dispatcher_exec import *
 
 from storage.db import MongoInitializer
 
-logging.basicConfig(filename="test.log",
+logging.basicConfig(filename="running",
                     level=logging.DEBUG,
                     format="(%(threadName)-10s) %(message)s",
                     )

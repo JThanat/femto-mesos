@@ -11,7 +11,7 @@ from zookeeper.job import Jobstate
 
 from Queue import Queue
 
-logging.basicConfig(filename="test.log",
+logging.basicConfig(filename="running",
                     level=logging.DEBUG,
                     format="(%(threadName)-10s) %(message)s",
                     )

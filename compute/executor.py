@@ -5,7 +5,7 @@ from random import *
 
 from zookeeper.job import Jobstate
 
-logging.basicConfig(filename="test.log",
+logging.basicConfig(filename="running",
                     level=logging.DEBUG,
                     format="(%(threadName)-10s) %(message)s",
                     )

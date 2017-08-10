@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-filename = "test.log"
+filename = "running.log"
 with open(filename) as f:
     content = f.readlines()
 content = [line.strip() for line in content]

@@ -37,7 +37,9 @@ if enable_dispatcher == '1':
     work_queue = dispatcher.work_queue
     dispatcher.start()
 
-    for i in range(4096):
+    number_of_queries = 4096
+
+    for i in range(number_of_queries):
         d = {}
         d["dataset"] = i % 5
         d["groupid"] = i % 5
