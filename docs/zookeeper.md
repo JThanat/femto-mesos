@@ -70,7 +70,28 @@ def _inner_get(path):
     return data
 ```
 
-#### Delete: client.delete(path)
+#### Get Children: client.get_children(path) : return list of child nodes
+`client.get_children` return all the path to its child nodes in list. The code belows show how to get all the path for child nodes. Because the data returned to us is path to child node, we can make use of child node name. In this case, we can make use of priority and sequence number of the path name to sort the result that we want. 
+
+```python
+self.unowned_job = self.client.get_children('/unowned')
+
+# Node name format is entry-prioirty-dataset:groupid-sequence
+# -int(entry.split("-")[1]) changes the sort order to descending order
+self.unowned_job = sorted(self.unowned_job, key=lambda entry: (-int(entry.split("-")[1]), entry.split("-")[-1]))
+```
+
+#### Delete: client.delete(path) : return delete status
+`client.delete(path)` simply delete the node specified by the path. It may throw `NoNodeError` because it cannot find the node with the path specified. In this case we should handle the error. However, it depends on situation what to do with the Error. 
+
+```python
+try:
+    self.client.delete(path)
+except NoNodeError:
+    # we may try to delete again by rasing ForceRetryError()
+    raise ForceRetryError()
+```
+ 
 
 ## Error Retry
 
