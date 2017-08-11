@@ -122,4 +122,4 @@ def update_state(self, state):
 
 ## Usage in Dispatcher
 ![query system layout](/docs/images/query_layout_dispatch.png)
-Dispatcher is responsible to put the job in the Zookeeper, and read the job status from the Zookeeper
+Dispatcher is responsible to put the job in the Zookeeper, and read the job status from the Zookeeper. There are two main function that Dispatcher has to deal with Zookeeper. The first one is to check and decide if it should put the job into Zookeeper or not. The other job is a watch job. Dispatcher has to watch for the job which has been successfully done. So the function will be simpler than the one used in compute node. Two main function used here are `client.create()` and `client.get()`
