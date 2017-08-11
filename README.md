@@ -66,3 +66,11 @@ With the result from running.log, it is possible to check the result by checking
 [Kazoo-Zookeeper Basic Usage](./docs/zookeeper.md)
 
 [Kazoo API Usage in the Project](./docs/zk_usage.md)
+
+## Zookeeper and Kazoo References
+* Zookeeper Concept
+    * [Official Document](https://zookeeper.apache.org/doc/trunk/zookeeperOver.html)
+    * [Easy Understading Version](http://www.tutorialspoint.com/zookeeper/)
+* Kazoo API Docs
+    * It is good to see some further API usage in the [official docs](https://kazoo.readthedocs.io/en/latest/)
+    * A better understanding of how to use Kazoo API could be found in the [Kazoo Recipe](https://github.com/python-zk/kazoo/tree/master/kazoo/recipe). It consists of barrier, cache, counter, election, lease, lock, partitioner, party, queue, watcher
