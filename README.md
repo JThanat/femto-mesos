@@ -64,3 +64,5 @@ With the result from running.log, it is possible to check the result by checking
 
 ## System Documents
 [Kazoo-Zookeeper Basic Usage](./docs/zookeeper.md)
+
+[Kazoo API Usage in the Project](./docs/zk_usage.md)
