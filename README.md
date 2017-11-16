@@ -2,6 +2,8 @@
 
 This project of two part. The first part is the project accoding to the Query System Layout with Zookeeper and the other part is Mesos Framework Part.
 
+This project is part of [Toward real-time data query systems in HEP Paper](https://arxiv.org/abs/1711.01229)
+
 ## Query System Layout
 
 ![query system layout](/docs/images/query_system_layout.png)
