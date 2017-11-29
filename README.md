@@ -1,6 +1,6 @@
 # Distributed Query Engine
 
-This project of two part. The first part is the project accoding to the Query System Layout with Zookeeper and the other part is Mesos Framework Part. The full explanation could be found in [CERN Student record](http://cds.cern.ch/record/2278211)
+This project is comprised of two part. The first part is the project accoding to the Query System Layout with Zookeeper and the other part is Mesos Framework Part. The full explanation could be found in [CERN Student record](http://cds.cern.ch/record/2278211)
 
 This project is part of [Toward real-time data query systems in HEP Paper](https://arxiv.org/abs/1711.01229)
 
